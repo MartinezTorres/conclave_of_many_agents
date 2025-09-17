@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": ["Read(**)", "Grep(**)", "Glob(**)", "Task(*)"],
+    "ask": [],
+    "deny": ["Write(**)", "Edit(**)", "MultiEdit(**)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/coma_gate.py"
+          }
+        ]
+      }
+    ]
+  }
+}
