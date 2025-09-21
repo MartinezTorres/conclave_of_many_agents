@@ -11,7 +11,7 @@ import { ClaudeCodeProvider } from './providers/claude-code.js';
 import { OpenAIProvider } from './providers/openai.js';
 import { ContextManager } from './context-manager.js';
 
-class ComaValidator {
+export class ComaValidator {
   constructor() {
     this.configDir = process.env.COMA_CONFIG_DIR;
     this.repoPath = process.env.COMA_REPO_PATH || process.cwd();
@@ -184,6 +184,7 @@ class ComaValidator {
     const rejections = results.filter(r => r.decision === 'REJECT');
     const needsContext = results.filter(r => r.decision === 'NEEDS_CONTEXT');
     const errors = results.filter(r => r.decision === 'ERROR');
+    const unknown = results.filter(r => !['APPROVE', 'REJECT', 'NEEDS_CONTEXT', 'ERROR'].includes(r.decision));
 
     // Any rejection blocks the operation
     if (rejections.length > 0) {
@@ -209,6 +210,15 @@ class ComaValidator {
         approved: false,
         reasoning: `Acolyte consultation errors (${errors.length}):\n\n` +
           errors.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
+      };
+    }
+
+    // Unknown decision types block the operation
+    if (unknown.length > 0) {
+      return {
+        approved: false,
+        reasoning: `Unknown decision types from ${unknown.length} acolyte(s):\n\n` +
+          unknown.map(r => `* ${r.file}: ${r.decision} - ${r.reasoning}`).join('\n\n')
       };
     }
 

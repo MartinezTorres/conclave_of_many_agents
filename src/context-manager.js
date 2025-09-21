@@ -17,8 +17,9 @@ export class ContextManager {
     const messages = this.getStoredMessages();
 
     // Add new message (truncated if needed)
+    const truncationSuffix = '...[truncated]';
     const truncatedMessage = message.length > this.maxMessageLength
-      ? message.substring(0, this.maxMessageLength) + '...[truncated]'
+      ? message.substring(0, this.maxMessageLength - truncationSuffix.length) + truncationSuffix
       : message;
 
     messages.unshift(truncatedMessage);

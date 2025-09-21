@@ -41,8 +41,8 @@ Begin your analysis:`;
 
       // Spawn Claude Code session with read-only tools
       const claudeProcess = spawn('claude', [
-        '--print',
         '--allowed-tools', 'Read,Grep,Glob,WebFetch,WebSearch',
+        '--print',
         instruction
       ], {
         cwd: this.repoPath,

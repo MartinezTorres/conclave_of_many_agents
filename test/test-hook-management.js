@@ -222,10 +222,18 @@ async function testHookManagement() {
 
     // Test 4: Remove hooks without backup (clean removal)
     console.log('Test 4: Remove hooks without backup (clean removal)');
+
+    // First remove any existing settings to start truly clean
+    await fs.unlink(coma.userSettingsPath).catch(() => {});
+
     await coma.installHooks();
 
     // Remove backup file to simulate no-backup scenario
     await fs.unlink(path.join(coma.userClaudeDir, 'settings.backup.json')).catch(() => {});
+
+    // Debug: Check what's in settings before removal
+    const beforeContent = await fs.readFile(coma.userSettingsPath, 'utf8');
+    const beforeSettings = JSON.parse(beforeContent);
 
     await coma.removeHooks();
 
@@ -234,7 +242,10 @@ async function testHookManagement() {
     if (!settingsExist) {
       console.log('✅ PASS - Settings file removed when no backup exists');
     } else {
+      const afterContent = await fs.readFile(coma.userSettingsPath, 'utf8');
       console.log('❌ FAIL - Settings file should have been removed');
+      console.log('Before cleanup:', JSON.stringify(beforeSettings, null, 2));
+      console.log('After cleanup:', afterContent);
     }
     console.log('');
 
