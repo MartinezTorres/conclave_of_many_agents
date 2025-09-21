@@ -1,6 +1,14 @@
-# Claude-COMA
+# Conclave of Many Agents (COMA)
 
-Temporary acolyte protection for Claude Code with selectable acolyte providers.
+*"In the spirit of ancient wisdom, where many counselors bring safety to important decisions, the Conclave gathers AI agents as guardians of your code. Each file finds its devoted acolyte, each change faces its thoughtful review."*
+
+When a single mind—even an AI mind—holds the weight of an entire codebase, important details slip through the cracks. That's why we summon a **conclave**: a deliberative assembly where **many agents** each hold deep knowledge of their domain, ensuring no change goes unexamined by those who understand it best.
+
+**What it does**: The Conclave addresses Claude's context limitations by assigning dedicated AI "acolytes" to each file in your repository. When Claude wants to make changes, these file-specific acolytes validate that the proposed changes align with the existing code, architecture, and ideas already expressed in their assigned files.
+
+**Why it's needed**: Claude Code has limited context and can't examine all files when making decisions. Each acolyte acts as the "key stakeholder" for their specific file, ensuring Claude's main agent doesn't make changes that conflict with established patterns or violate the design principles already present in the codebase.
+
+**How to use**: Use `claude-coma` instead of `claude` to launch Claude Code with the Conclave of Many Agents protection active. You can still use `claude` normally in the same repository when you don't want the protection.
 
 ## Vision
 
