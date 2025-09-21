@@ -3,37 +3,31 @@
 **NOTE: Before tackling any items below, these must be prioritized first based on project goals and requirements.**
 
 ## Priority 1 - Critical (Must Fix Now)
-- [ ] Add license file to repository
-- [ ] Install and verify OpenAI dependency
-- [ ] Add OpenAI API key validation
-- [ ] Create comprehensive test suite for both providers
-- [ ] Add graceful error handling for network failures
-- [ ] Implement timeout handling for Claude Code sessions
-
-## Priority 2 - Essential (Before Release)
 - [ ] Test end-to-end functionality with real repository
 - [ ] Verify hooks trigger correctly in Claude Code
-- [ ] Test cleanup process works properly
 - [ ] Add installation and setup instructions to README
 
-## Priority 3 - Important (Quality of Life)
+## Priority 2 - Essential (Before Release)
 - [ ] Add configuration options for timeouts and prompts
 - [ ] Implement verbose/debug mode
 - [ ] Add real usage examples to documentation
-
-## Priority 4 - Nice to Have
 - [ ] Create troubleshooting guide
-- [ ] Add performance metrics and logging
 
-## Architecture & Design Improvements (Needs Prioritization)
+## Priority 3 - Important (Quality of Life)
+- [ ] Add performance metrics and logging
+- [ ] Context capture hook testing with real Claude Code sessions
+
+## Architecture & Design Improvements (Future)
+- [x] **File Reading for Acolytes**: Enable acolytes to read actual file contents for informed decisions (✅ Already implemented via --allowed-tools)
+- [x] **Change Context Awareness**: Provide acolytes with user intent and commit message context (✅ Implemented via context capture system)
 - [ ] **Dual Mode Architecture**: Design clear separation between "Simple Protective Wrapper" and "Development Assistant" modes
-- [ ] **File Reading for Acolytes**: Enable acolytes to read actual file contents for informed decisions
 - [ ] **Acolyte Specialization**: Create file-type specific acolytes (JS, Python, Config, etc.)
 - [ ] **Role-based Acolytes**: Implement specialized roles (security, performance, style, documentation)
-- [ ] **Change Context Awareness**: Provide acolytes with user intent and commit message context
 - [ ] **Cross-file Analysis**: Enable acolytes to understand relationships between modified files
+- [ ] **Enhanced Context Capture**: Capture more than 5 recent messages, include user prompts
 
-## Security & Safety Improvements (Needs Prioritization)
+## Security & Safety Improvements (Future)
+- [x] **Acolyte Sandboxing**: Restrict acolyte tools to read-only operations (✅ Implemented via --allowed-tools)
 - [ ] **API Key Security**: Implement secure credential management and sandboxing
 - [ ] **Rate Limiting**: Add OpenAI API rate limiting and cost controls
 - [ ] **Prompt Injection Protection**: Secure acolyte prompts against malicious input
@@ -68,6 +62,18 @@
 - [x] Fix provider interface consistency
 - [x] Clean up file references and imports
 - [x] Update documentation for new architecture
+- [x] Add license file to repository
+- [x] Install and verify OpenAI dependency
+- [x] Add OpenAI API key validation
+- [x] Create comprehensive test suite for both providers (6 test files)
+- [x] Add graceful error handling for network failures
+- [x] Implement timeout handling for Claude Code sessions
+- [x] Test cleanup process works properly
+- [x] Extract hardcoded prompts to customizable base.md template
+- [x] Implement context capture system via hooks
+- [x] Add read-only tool restrictions for acolyte security
+- [x] Create ARCHITECTURE.md with detailed technical documentation
+- [x] Add .gitignore with appropriate patterns
 
 ## Notes
 - Keep this list updated as we discover new requirements
