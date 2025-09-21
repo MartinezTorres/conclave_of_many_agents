@@ -1,0 +1,31 @@
+{
+  "name": "claude-coma",
+  "version": "1.0.0",
+  "description": "COMA - Temporary acolyte protection for Claude Code with selectable providers",
+  "type": "module",
+  "main": "src/claude-coma.js",
+  "bin": {
+    "claude-coma": "./bin/claude-coma"
+  },
+  "scripts": {
+    "install-global": "npm install -g .",
+    "test": "node bin/claude-coma --help",
+    "test-providers": "node test/test-parallel-acolytes.js"
+  },
+  "keywords": [
+    "claude-code",
+    "protection",
+    "validation",
+    "acolytes",
+    "providers",
+    "openai"
+  ],
+  "author": "COMA Project",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}
