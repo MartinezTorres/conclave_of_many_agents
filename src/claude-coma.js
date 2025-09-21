@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Claude-COMA - Clean Implementation
- * Two commands: claude-coma (temp protection) and claude-coma cleanup (remove hooks)
+ * Claude-COMA - Conclave of Many Agents
+ * Main launcher: claude-coma (temp protection) and claude-coma cleanup (remove hooks)
  */
 
 import fs from 'fs/promises';
@@ -152,7 +152,6 @@ Examples:
       }
     };
 
-    // No MCP configuration needed - OpenAI provider uses direct API calls
 
     // Merge with existing settings
     const mergedSettings = {
@@ -213,11 +212,15 @@ Examples:
     const files = await this.scanRepository();
     console.log(`COMA: Found ${files.length} files to protect`);
 
+    // Load base prompt template
+    const promptPath = path.join(__dirname, 'prompts', 'base.md');
+    const basePrompt = await fs.readFile(promptPath, 'utf8');
+
     // Create acolyte configurations
     const acolytes = files.map(file => ({
       id: `acolyte_${file.replace(/[^a-zA-Z0-9]/g, '_')}`,
       file: file,
-      systemPrompt: `You are an acolyte protecting "${file}". Analyze proposed changes for compatibility with this file's purpose and structure. Respond APPROVE, REJECT (with reason), or NEEDS_CONTEXT.`
+      systemPrompt: basePrompt.replace('{{FILE_PATH}}', file).replace('{{FILE_TYPE_GUIDELINES}}', '')
     }));
 
     await fs.writeFile(

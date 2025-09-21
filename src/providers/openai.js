@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * OpenAI Provider for COMA
  * Handles acolyte consultation using direct OpenAI API calls

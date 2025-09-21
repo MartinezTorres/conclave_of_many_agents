@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Context Capturer for COMA
  * Captures Claude's explanations and context via PostToolUse hooks

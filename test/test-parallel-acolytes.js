@@ -1,110 +1,80 @@
 #!/usr/bin/env node
 
 /**
- * Test script for parallel Claude acolytes
+ * Test script for COMA parallel acolyte system
  */
 
-import { spawn } from 'child_process';
+import { ClaudeCodeProvider } from '../src/providers/claude-code.js';
+import { OpenAIProvider } from '../src/providers/openai.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function testParallelAcolytes() {
-  console.log('Testing parallel Claude acolytes...');
+  console.log('Testing COMA parallel acolyte system...');
+
+  // Load base prompt template
+  const promptPath = path.join(__dirname, '..', 'src', 'prompts', 'base.md');
+  const basePrompt = await fs.readFile(promptPath, 'utf8');
 
   const acolytes = [
-    { id: 'acolyte1', file: 'math.js', systemPrompt: 'You protect mathematical functions.' },
-    { id: 'acolyte2', file: 'utils.js', systemPrompt: 'You protect utility functions.' },
-    { id: 'acolyte3', file: 'api.js', systemPrompt: 'You protect API endpoints.' }
+    {
+      id: 'acolyte1',
+      file: 'src/claude-coma.js',
+      systemPrompt: basePrompt.replace('{{FILE_PATH}}', 'src/claude-coma.js').replace('{{FILE_TYPE_GUIDELINES}}', '')
+    },
+    {
+      id: 'acolyte2',
+      file: 'src/coma-validator.js',
+      systemPrompt: basePrompt.replace('{{FILE_PATH}}', 'src/coma-validator.js').replace('{{FILE_TYPE_GUIDELINES}}', '')
+    },
+    {
+      id: 'acolyte3',
+      file: 'package.json',
+      systemPrompt: basePrompt.replace('{{FILE_PATH}}', 'package.json').replace('{{FILE_TYPE_GUIDELINES}}', '')
+    }
   ];
 
   const toolData = {
     toolName: 'Edit',
-    parameters: { file_path: 'math.js', old_string: 'add', new_string: 'sum' }
+    parameters: { file_path: 'src/claude-coma.js', old_string: 'claude-coma', new_string: 'claude-coma-v2' },
+    claudeContext: 'Recent Claude responses:\n1. Updating the project name for version 2 release\n2. This is a minor change to the main launcher file'
   };
 
-  console.log(`Starting ${acolytes.length} Claude acolytes in parallel`);
-  const startTime = Date.now();
+  // Test both providers
+  const providers = [
+    { name: 'Claude Code', provider: new ClaudeCodeProvider(process.cwd()) },
+    ...(process.env.OPENAI_API_KEY ? [{ name: 'OpenAI', provider: new OpenAIProvider(process.cwd()) }] : [])
+  ];
 
-  // Spawn all acolytes in parallel
-  const promises = acolytes.map(acolyte => consultClaudeAcolyte(acolyte, toolData));
+  for (const { name, provider } of providers) {
+    console.log(`\n=== Testing ${name} Provider ===`);
+    console.log(`Starting ${acolytes.length} ${name} acolytes in parallel`);
+    const startTime = Date.now();
 
-  try {
-    const results = await Promise.all(promises);
-    const endTime = Date.now();
+    try {
+      // Spawn all acolytes in parallel using the provider
+      const promises = acolytes.map(acolyte => provider.consultAcolyte(acolyte, toolData));
+      const results = await Promise.all(promises);
+      const endTime = Date.now();
 
-    console.log(`All ${acolytes.length} acolytes completed in ${endTime - startTime}ms`);
-    console.log('\nResults:');
-    results.forEach((result, i) => {
-      console.log(`\nAcolyte ${acolytes[i].id}:`);
-      console.log(`Decision: ${result.decision}`);
-      console.log(`Reasoning: ${result.reasoning.substring(0, 100)}...`);
-    });
+      console.log(`All ${acolytes.length} acolytes completed in ${endTime - startTime}ms`);
+      console.log('\nResults:');
+      results.forEach((result, i) => {
+        console.log(`\nAcolyte ${acolytes[i].id} (${acolytes[i].file}):`);
+        console.log(`Decision: ${result.decision}`);
+        console.log(`Reasoning: ${result.reasoning.substring(0, 150)}...`);
+      });
 
-  } catch (error) {
-    console.error('Error:', error.message);
+    } catch (error) {
+      console.error(`Error with ${name} provider:`, error.message);
+    }
   }
 }
 
-function consultClaudeAcolyte(acolyte, toolData) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error('Claude acolyte consultation timed out'));
-    }, 30000);
-
-    const instruction = `${acolyte.systemPrompt}
-
-PROPOSED CHANGE:
-Tool: ${toolData.toolName}
-Parameters: ${JSON.stringify(toolData.parameters, null, 2)}
-
-Your file: ${acolyte.file}
-
-TASK: Analyze if this change is compatible with your file. Respond with APPROVE, REJECT, or NEEDS_CONTEXT.`;
-
-    const claudeProcess = spawn('claude', ['--print', instruction], {
-      cwd: '/tmp/test-claude-acolyte',
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    let output = '';
-    let errorOutput = '';
-
-    claudeProcess.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    claudeProcess.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-
-    claudeProcess.on('close', (code) => {
-      clearTimeout(timeout);
-
-      if (code !== 0) {
-        reject(new Error(`Claude acolyte failed: ${errorOutput}`));
-        return;
-      }
-
-      // Parse response
-      const cleanOutput = output.trim();
-      let decision = 'UNCLEAR';
-
-      if (cleanOutput.includes('APPROVE')) {
-        decision = 'APPROVE';
-      } else if (cleanOutput.includes('REJECT')) {
-        decision = 'REJECT';
-      } else if (cleanOutput.includes('NEEDS_CONTEXT')) {
-        decision = 'NEEDS_CONTEXT';
-      }
-
-      resolve({ decision, reasoning: cleanOutput });
-    });
-
-    claudeProcess.on('error', (error) => {
-      clearTimeout(timeout);
-      reject(new Error(`Failed to spawn Claude acolyte: ${error.message}`));
-    });
-
-    claudeProcess.stdin.end();
-  });
-}
-
-testParallelAcolytes();
+testParallelAcolytes().catch(error => {
+  console.error('Test failed:', error.message);
+  process.exit(1);
+});

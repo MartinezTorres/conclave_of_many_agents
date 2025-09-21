@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Claude Code Provider for COMA
  * Handles acolyte consultation using parallel Claude Code sessions

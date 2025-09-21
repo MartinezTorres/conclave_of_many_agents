@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Context Manager for COMA
  * Captures and manages Claude's recent text output for acolyte context
