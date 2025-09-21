@@ -126,6 +126,28 @@ Examples:
               }
             ]
           }
+        ],
+        PostToolUse: [
+          {
+            matcher: ".*",
+            hooks: [
+              {
+                type: "command",
+                command: `COMA_HOOK_TYPE=PostToolUse node ${path.join(__dirname, 'context-capturer.js')}`
+              }
+            ]
+          }
+        ],
+        UserPromptSubmit: [
+          {
+            matcher: ".*",
+            hooks: [
+              {
+                type: "command",
+                command: `COMA_HOOK_TYPE=UserPromptSubmit node ${path.join(__dirname, 'context-capturer.js')}`
+              }
+            ]
+          }
         ]
       }
     };

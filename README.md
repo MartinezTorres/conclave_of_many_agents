@@ -10,23 +10,11 @@ When a single mind—even an AI mind—holds the weight of an entire codebase, i
 
 **How to use**: Use `claude-coma` instead of `claude` to launch Claude Code with the Conclave of Many Agents protection active. You can still use `claude` normally in the same repository when you don't want the protection.
 
-## Vision
+## How It Works
 
-Claude-COMA is designed as a **dual-mode system** to serve different development needs:
+COMA assigns AI "acolytes" to each file in your repository. When Claude wants to make changes, these acolytes validate the proposed changes against their file's context and patterns. The system captures Claude's recent responses to provide reasoning context to the acolytes.
 
-### Simple Protective Wrapper (Core)
-- **Easy Integration**: Drop-in protection for existing Claude Code workflows
-- **Minimal Overhead**: Basic validation without changing development habits
-- **Team Friendly**: Optional adoption - doesn't force workflows on teammates
-- **Backward Compatible**: Works with any existing Claude Code setup
-
-### Development Assistant Mode (Extended)
-- **Rich Features**: Advanced acolyte capabilities for teams wanting deeper integration
-- **Smart Analysis**: File-aware acolytes with context understanding
-- **Workflow Integration**: Git, CI/CD, and IDE integrations
-- **Team Coordination**: Shared configurations and learning from team patterns
-
-Both modes use the same core acolyte system but offer different levels of functionality based on your needs.
+**For technical details**, see [ARCHITECTURE.md](ARCHITECTURE.md) which explains the internal design, decision processes, and implementation details.
 
 ## Installation
 

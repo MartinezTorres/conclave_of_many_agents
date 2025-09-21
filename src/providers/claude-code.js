@@ -6,6 +6,11 @@
  */
 
 import { spawn } from 'child_process';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class ClaudeCodeProvider {
   constructor(repoPath) {
@@ -13,36 +18,33 @@ export class ClaudeCodeProvider {
   }
 
   async consultAcolyte(acolyte, toolData) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Claude Code acolyte consultation timed out'));
       }, 60000); // 60 second timeout for Claude sessions
 
-      // Create instruction for Claude acolyte
-      const instruction = `${acolyte.systemPrompt}
+      try {
+        // Load base prompt
+        const promptPath = path.join(__dirname, '..', 'prompts', 'base.md');
+        const basePrompt = await fs.readFile(promptPath, 'utf8');
+
+        // Create instruction for Claude acolyte
+        const contextSection = toolData.claudeContext
+          ? `\n\nCONTEXT FROM RECENT CLAUDE RESPONSES:\n${toolData.claudeContext}\n`
+          : '';
+
+        const instruction = `${basePrompt.replace('{{FILE_PATH}}', acolyte.file).replace('{{FILE_TYPE_GUIDELINES}}', '')}${contextSection}
 
 PROPOSED CHANGE:
 Tool: ${toolData.toolName}
 Parameters: ${JSON.stringify(toolData.parameters, null, 2)}
 
-Your file: ${acolyte.file}
-
-TASK: Analyze if this proposed change is compatible with your assigned file. Consider:
-1. File structure and purpose
-2. Dependencies and relationships
-3. Potential breaking changes
-4. Code consistency
-
-RESPONSE FORMAT: End your response with exactly one of:
-- APPROVE (if change is safe and compatible)
-- REJECT (if change would cause issues - explain why)
-- NEEDS_CONTEXT (if you need more information)
-
 Begin your analysis:`;
 
-      // Spawn Claude Code session
+      // Spawn Claude Code session with read-only tools
       const claudeProcess = spawn('claude', [
         '--print',
+        '--allowed-tools', 'Read,Grep,Glob,WebFetch,WebSearch',
         instruction
       ], {
         cwd: this.repoPath,
@@ -83,6 +85,10 @@ Begin your analysis:`;
 
       // Claude doesn't need stdin input for --print mode
       claudeProcess.stdin.end();
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(new Error(`Failed to load prompt: ${error.message}`));
+      }
     });
   }
 

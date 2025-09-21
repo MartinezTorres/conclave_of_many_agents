@@ -6,6 +6,11 @@
  */
 
 import OpenAI from 'openai';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class OpenAIProvider {
   constructor(repoPath) {
@@ -27,15 +32,20 @@ export class OpenAIProvider {
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    const instruction = `${acolyte.systemPrompt}
+    // Load base prompt
+    const promptPath = path.join(__dirname, '..', 'prompts', 'base.md');
+    const basePrompt = await fs.readFile(promptPath, 'utf8');
 
-Proposed change:
+    // Add context if available
+    const contextSection = toolData.claudeContext
+      ? `\n\nCONTEXT FROM RECENT CLAUDE RESPONSES:\n${toolData.claudeContext}\n`
+      : '';
+
+    const instruction = `${basePrompt.replace('{{FILE_PATH}}', acolyte.file).replace('{{FILE_TYPE_GUIDELINES}}', '')}${contextSection}
+
+PROPOSED CHANGE:
 Tool: ${toolData.toolName}
-Parameters: ${JSON.stringify(toolData.parameters, null, 2)}
-
-Analyze this change for compatibility with your file "${acolyte.file}".
-
-Respond with exactly one of: APPROVE, REJECT, or NEEDS_CONTEXT`;
+Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
 
     try {
       const response = await openai.chat.completions.create({

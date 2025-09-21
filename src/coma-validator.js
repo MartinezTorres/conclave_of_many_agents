@@ -9,12 +9,14 @@ import fs from 'fs/promises';
 import path from 'path';
 import { ClaudeCodeProvider } from './providers/claude-code.js';
 import { OpenAIProvider } from './providers/openai.js';
+import { ContextManager } from './context-manager.js';
 
 class ComaValidator {
   constructor() {
     this.configDir = process.env.COMA_CONFIG_DIR;
     this.repoPath = process.env.COMA_REPO_PATH || process.cwd();
     this.provider = process.env.COMA_PROVIDER || 'claude-code';
+    this.contextManager = new ContextManager();
 
     if (!this.configDir) {
       console.error('COMA: Configuration directory not set');
@@ -144,9 +146,18 @@ class ComaValidator {
   async consultAcolytes(acolytes, toolData) {
     console.log(`COMA: Starting ${acolytes.length} ${this.provider} acolytes in parallel`);
 
+    // Get captured context from recent Claude responses
+    const claudeContext = this.contextManager.getContextForAcolytes();
+
+    // Create enhanced tool data with context
+    const enhancedToolData = {
+      ...toolData,
+      claudeContext: claudeContext
+    };
+
     // Spawn all acolytes in parallel using the provider
     const promises = acolytes.map(acolyte =>
-      this.acolyteProvider.consultAcolyte(acolyte, toolData)
+      this.acolyteProvider.consultAcolyte(acolyte, enhancedToolData)
         .then(result => ({
           acolyteId: acolyte.id,
           file: acolyte.file,
