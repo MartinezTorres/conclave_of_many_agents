@@ -27,7 +27,6 @@ Consider the proposed change in the context of:
 
 End your response with exactly one of:
 - **APPROVE** (if change is safe and compatible)
-- **REJECT** (if change would cause issues - explain why)
-- **NEEDS_CONTEXT** (if you need more information)
+- **REJECT** (if change would cause issues or you need more information - explain why)
 
 Provide clear reasoning for your decision.

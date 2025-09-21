@@ -182,9 +182,8 @@ export class ComaValidator {
   evaluateConsensus(results) {
     const approvals = results.filter(r => r.decision === 'APPROVE');
     const rejections = results.filter(r => r.decision === 'REJECT');
-    const needsContext = results.filter(r => r.decision === 'NEEDS_CONTEXT');
     const errors = results.filter(r => r.decision === 'ERROR');
-    const unknown = results.filter(r => !['APPROVE', 'REJECT', 'NEEDS_CONTEXT', 'ERROR'].includes(r.decision));
+    const unknown = results.filter(r => !['APPROVE', 'REJECT', 'ERROR'].includes(r.decision));
 
     // Any rejection blocks the operation
     if (rejections.length > 0) {
@@ -192,15 +191,6 @@ export class ComaValidator {
         approved: false,
         reasoning: `Operation blocked by ${rejections.length} acolyte(s):\n\n` +
           rejections.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
-      };
-    }
-
-    // Need context blocks the operation
-    if (needsContext.length > 0) {
-      return {
-        approved: false,
-        reasoning: `Operation requires more context from ${needsContext.length} acolyte(s):\n\n` +
-          needsContext.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
       };
     }
 

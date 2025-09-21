@@ -17,9 +17,8 @@ class TestableComaValidator {
   evaluateConsensus(results) {
     const approvals = results.filter(r => r.decision === 'APPROVE');
     const rejections = results.filter(r => r.decision === 'REJECT');
-    const needsContext = results.filter(r => r.decision === 'NEEDS_CONTEXT');
     const errors = results.filter(r => r.decision === 'ERROR');
-    const unknown = results.filter(r => !['APPROVE', 'REJECT', 'NEEDS_CONTEXT', 'ERROR'].includes(r.decision));
+    const unknown = results.filter(r => !['APPROVE', 'REJECT', 'ERROR'].includes(r.decision));
 
     // Any rejection blocks the operation
     if (rejections.length > 0) {
@@ -27,15 +26,6 @@ class TestableComaValidator {
         approved: false,
         reasoning: `Operation blocked by ${rejections.length} acolyte(s):\n\n` +
           rejections.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
-      };
-    }
-
-    // Need context blocks the operation
-    if (needsContext.length > 0) {
-      return {
-        approved: false,
-        reasoning: `Operation requires more context from ${needsContext.length} acolyte(s):\n\n` +
-          needsContext.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
       };
     }
 
@@ -99,19 +89,10 @@ async function testConsensusLogic() {
       expectedApproval: false
     },
     {
-      name: 'Needs Context',
+      name: 'Mixed Decisions with Rejection',
       results: [
         { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'NEEDS_CONTEXT', reasoning: 'Need more information' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
-      ],
-      expectedApproval: false
-    },
-    {
-      name: 'Mixed Rejections and Context Needs',
-      results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'REJECT', reasoning: 'Bad pattern' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'NEEDS_CONTEXT', reasoning: 'Unclear intent' },
+        { acolyteId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Need more information' },
         { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: false

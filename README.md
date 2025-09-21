@@ -71,7 +71,7 @@ Each file gets an OpenAI-powered acolyte that:
 - Requires OpenAI API key
 
 Both types:
-- Return APPROVE, REJECT, or NEEDS_CONTEXT
+- Return APPROVE or REJECT
 - Any rejection blocks the operation
 - Provide detailed reasoning
 

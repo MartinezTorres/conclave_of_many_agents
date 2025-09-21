@@ -32,7 +32,7 @@ class MockErrorProvider {
         return { decision: '', reasoning: '' };
 
       case 'malformed_response':
-        return { decision: 'APPROVE but actually REJECT', reasoning: 'Confusing response' };
+        return { decision: 'MAYBE_APPROVE', reasoning: 'Confusing response' };
 
       case 'api_error':
         throw new Error('API rate limit exceeded');

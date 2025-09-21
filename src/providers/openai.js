@@ -51,7 +51,7 @@ Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
         messages: [
           {
             role: "system",
-            content: "You are an acolyte agent protecting code files. Analyze proposed changes and respond with APPROVE, REJECT, or NEEDS_CONTEXT."
+            content: "You are an acolyte agent protecting code files. Analyze proposed changes and respond with APPROVE or REJECT."
           },
           {
             role: "user",
@@ -78,11 +78,9 @@ Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
       return { decision: 'APPROVE', reasoning: cleanOutput };
     } else if (cleanOutput.includes('REJECT')) {
       return { decision: 'REJECT', reasoning: cleanOutput };
-    } else if (cleanOutput.includes('NEEDS_CONTEXT')) {
-      return { decision: 'NEEDS_CONTEXT', reasoning: cleanOutput };
     } else {
-      // If no clear decision, treat as needs more context
-      return { decision: 'UNCLEAR', reasoning: cleanOutput };
+      // If no clear decision, treat as reject for safety
+      return { decision: 'REJECT', reasoning: `Unclear response: ${cleanOutput}` };
     }
   }
 }

@@ -124,7 +124,6 @@ When a tool use is intercepted:
 
 4. **Consensus Evaluation**
    - Any `REJECT` → Operation blocked
-   - Any `NEEDS_CONTEXT` → Operation blocked
    - Any `ERROR` → Operation blocked
    - All `APPROVE` → Operation allowed
 

@@ -99,11 +99,9 @@ Begin your analysis:`;
       return { decision: 'APPROVE', reasoning: cleanOutput };
     } else if (cleanOutput.includes('REJECT')) {
       return { decision: 'REJECT', reasoning: cleanOutput };
-    } else if (cleanOutput.includes('NEEDS_CONTEXT')) {
-      return { decision: 'NEEDS_CONTEXT', reasoning: cleanOutput };
     } else {
-      // If no clear decision, treat as needs more context
-      return { decision: 'UNCLEAR', reasoning: cleanOutput };
+      // If no clear decision, treat as reject for safety
+      return { decision: 'REJECT', reasoning: `Unclear response: ${cleanOutput}` };
     }
   }
 }
