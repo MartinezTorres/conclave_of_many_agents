@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Test script for COMA hook management (installation and cleanup)
  */
@@ -15,7 +13,7 @@ class TestableCleanComa {
     this.userSettingsPath = path.join(this.userClaudeDir, 'settings.json');
     this.repoPath = testDir;
     this.comaConfigDir = path.join(testDir, '.coma-temp');
-    this.acolyteProvider = 'claude-code';
+    this.agentProvider = 'claude-code';
   }
 
   // Copy methods from CleanComa for testing
@@ -150,20 +148,23 @@ Example COMA hook entries to remove:
     }
   }
 
-  async setupAcolytes() {
+  async setupAgents() {
+    // NOTE: This method is for testing legacy behavior only
+    // In the current stateless design, agents are generated dynamically
+    // This test method simulates the old stateful approach for testing cleanup
     await fs.mkdir(this.comaConfigDir, { recursive: true });
 
-    const acolytes = [
+    const agents = [
       {
-        id: 'test_acolyte_1',
+        id: 'test_agent_1',
         file: 'test1.js',
         systemPrompt: 'Test prompt for file test1.js'
       }
     ];
 
     await fs.writeFile(
-      path.join(this.comaConfigDir, 'acolytes.json'),
-      JSON.stringify(acolytes, null, 2)
+      path.join(this.comaConfigDir, 'agents.json'),
+      JSON.stringify(agents, null, 2)
     );
   }
 
@@ -198,9 +199,9 @@ async function testHookManagement() {
     const hasComaMarker = settings._comaActive === true;
 
     if (hasPreToolUse && hasPostToolUse && hasComaMarker) {
-      console.log('✅ PASS - Hooks installed correctly');
+      console.log('PASS PASS - Hooks installed correctly');
     } else {
-      console.log('❌ FAIL - Hook installation incomplete');
+      console.log('FAIL FAIL - Hook installation incomplete');
       console.log('Has PreToolUse:', hasPreToolUse);
       console.log('Has PostToolUse:', hasPostToolUse);
       console.log('Has COMA marker:', hasComaMarker);
@@ -228,12 +229,12 @@ async function testHookManagement() {
       const backup = JSON.parse(backupContent);
 
       if (backup.theme === 'dark' && backup.hooks?.SomeOtherHook) {
-        console.log('✅ PASS - Existing settings backed up correctly');
+        console.log('PASS PASS - Existing settings backed up correctly');
       } else {
-        console.log('❌ FAIL - Backup content incorrect');
+        console.log('FAIL FAIL - Backup content incorrect');
       }
     } else {
-      console.log('❌ FAIL - Backup file not created');
+      console.log('FAIL FAIL - Backup file not created');
     }
     console.log('');
 
@@ -248,9 +249,9 @@ async function testHookManagement() {
     const comaRemoved = !restored._comaActive && !restored.hooks?.PreToolUse;
 
     if (backupRestored && comaRemoved) {
-      console.log('✅ PASS - Hooks removed and backup restored');
+      console.log('PASS PASS - Hooks removed and backup restored');
     } else {
-      console.log('❌ FAIL - Hook removal/restoration failed');
+      console.log('FAIL FAIL - Hook removal/restoration failed');
       console.log('Backup restored:', backupRestored);
       console.log('COMA removed:', comaRemoved);
     }
@@ -276,33 +277,33 @@ async function testHookManagement() {
     const settingsExist = await fs.access(coma.userSettingsPath).then(() => true).catch(() => false);
 
     if (!settingsExist) {
-      console.log('✅ PASS - Settings file removed when no backup exists');
+      console.log('PASS PASS - Settings file removed when no backup exists');
     } else {
       const afterContent = await fs.readFile(coma.userSettingsPath, 'utf8');
-      console.log('❌ FAIL - Settings file should have been removed');
+      console.log('FAIL FAIL - Settings file should have been removed');
       console.log('Before cleanup:', JSON.stringify(beforeSettings, null, 2));
       console.log('After cleanup:', afterContent);
     }
     console.log('');
 
-    // Test 5: Acolyte setup and cleanup
-    console.log('Test 5: Acolyte setup and cleanup');
-    await coma.setupAcolytes();
+    // Test 5: Agent setup and cleanup
+    console.log('Test 5: Agent setup and cleanup');
+    await coma.setupAgents();
 
-    const acolytesPath = path.join(coma.comaConfigDir, 'acolytes.json');
-    const acolytesExist = await fs.access(acolytesPath).then(() => true).catch(() => false);
+    const agentsPath = path.join(coma.comaConfigDir, 'agents.json');
+    const agentsExist = await fs.access(agentsPath).then(() => true).catch(() => false);
 
-    if (acolytesExist) {
-      const acolytesContent = await fs.readFile(acolytesPath, 'utf8');
-      const acolytes = JSON.parse(acolytesContent);
+    if (agentsExist) {
+      const agentsContent = await fs.readFile(agentsPath, 'utf8');
+      const agents = JSON.parse(agentsContent);
 
-      if (acolytes.length === 1 && acolytes[0].id === 'test_acolyte_1') {
-        console.log('✅ PASS - Acolytes configured correctly');
+      if (agents.length === 1 && agents[0].id === 'test_agent_1') {
+        console.log('PASS PASS - Agents configured correctly');
       } else {
-        console.log('❌ FAIL - Acolyte configuration incorrect');
+        console.log('FAIL FAIL - Agent configuration incorrect');
       }
     } else {
-      console.log('❌ FAIL - Acolytes file not created');
+      console.log('FAIL FAIL - Agents file not created');
     }
 
     // Test cleanup
@@ -310,9 +311,9 @@ async function testHookManagement() {
     const tempDirExists = await fs.access(coma.comaConfigDir).then(() => true).catch(() => false);
 
     if (!tempDirExists) {
-      console.log('✅ PASS - Temporary directory cleaned up');
+      console.log('PASS PASS - Temporary directory cleaned up');
     } else {
-      console.log('❌ FAIL - Temporary directory not cleaned up');
+      console.log('FAIL FAIL - Temporary directory not cleaned up');
     }
     console.log('');
 
@@ -322,9 +323,9 @@ async function testHookManagement() {
 
     try {
       await coma.ensureHooksInstalled();
-      console.log('✅ PASS - Invalid JSON handled gracefully');
+      console.log('PASS PASS - Invalid JSON handled gracefully');
     } catch (error) {
-      console.log('❌ FAIL - Should handle invalid JSON gracefully');
+      console.log('FAIL FAIL - Should handle invalid JSON gracefully');
       console.log('Error:', error.message);
     }
     console.log('');
@@ -341,7 +342,7 @@ async function testHookManagement() {
 async function runTests() {
   try {
     await testHookManagement();
-    console.log('🎉 All hook management tests completed!');
+    console.log('SUCCESS All hook management tests completed!');
   } catch (error) {
     console.error('Test failed:', error.message);
     console.error(error.stack);

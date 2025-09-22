@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Test script for COMA consensus evaluation logic
  */
@@ -24,7 +22,7 @@ class TestableComaValidator {
     if (rejections.length > 0) {
       return {
         approved: false,
-        reasoning: `Operation blocked by ${rejections.length} acolyte(s):\n\n` +
+        reasoning: `Operation blocked by ${rejections.length} agent(s):\n\n` +
           rejections.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
       };
     }
@@ -33,7 +31,7 @@ class TestableComaValidator {
     if (errors.length > 0) {
       return {
         approved: false,
-        reasoning: `Acolyte consultation errors (${errors.length}):\n\n` +
+        reasoning: `Agent consultation errors (${errors.length}):\n\n` +
           errors.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
       };
     }
@@ -42,7 +40,7 @@ class TestableComaValidator {
     if (unknown.length > 0) {
       return {
         approved: false,
-        reasoning: `Unknown decision types from ${unknown.length} acolyte(s):\n\n` +
+        reasoning: `Unknown decision types from ${unknown.length} agent(s):\n\n` +
           unknown.map(r => `* ${r.file}: ${r.decision} - ${r.reasoning}`).join('\n\n')
       };
     }
@@ -50,7 +48,7 @@ class TestableComaValidator {
     // All approvals
     return {
       approved: true,
-      reasoning: `Unanimous approval from ${approvals.length} acolyte(s)`
+      reasoning: `Unanimous approval from ${approvals.length} agent(s)`
     };
   }
 }
@@ -64,54 +62,54 @@ async function testConsensusLogic() {
     {
       name: 'Unanimous Approval',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'APPROVE', reasoning: 'Safe change' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
+        { agentId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
+        { agentId: 'test2', file: 'file2.js', decision: 'APPROVE', reasoning: 'Safe change' },
+        { agentId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: true
     },
     {
       name: 'Single Rejection',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Breaking change detected' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
+        { agentId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
+        { agentId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Breaking change detected' },
+        { agentId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: false
     },
     {
       name: 'Multiple Rejections',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'REJECT', reasoning: 'Violates patterns' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Breaking change' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
+        { agentId: 'test1', file: 'file1.js', decision: 'REJECT', reasoning: 'Violates patterns' },
+        { agentId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Breaking change' },
+        { agentId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: false
     },
     {
       name: 'Mixed Decisions with Rejection',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Need more information' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
+        { agentId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
+        { agentId: 'test2', file: 'file2.js', decision: 'REJECT', reasoning: 'Need more information' },
+        { agentId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: false
     },
     {
       name: 'Error Responses',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'ERROR', reasoning: 'Timeout occurred' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
+        { agentId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
+        { agentId: 'test2', file: 'file2.js', decision: 'ERROR', reasoning: 'Timeout occurred' },
+        { agentId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: false
     },
     {
       name: 'Unknown Decision Types',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
-        { acolyteId: 'test2', file: 'file2.js', decision: 'UNCLEAR', reasoning: 'Ambiguous response' },
-        { acolyteId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
+        { agentId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Looks good' },
+        { agentId: 'test2', file: 'file2.js', decision: 'UNCLEAR', reasoning: 'Ambiguous response' },
+        { agentId: 'test3', file: 'file3.js', decision: 'APPROVE', reasoning: 'No issues' }
       ],
       expectedApproval: false
     },
@@ -121,16 +119,16 @@ async function testConsensusLogic() {
       expectedApproval: true // No objections means approval
     },
     {
-      name: 'Single Acolyte Approval',
+      name: 'Single Agent Approval',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Safe change' }
+        { agentId: 'test1', file: 'file1.js', decision: 'APPROVE', reasoning: 'Safe change' }
       ],
       expectedApproval: true
     },
     {
-      name: 'Single Acolyte Rejection',
+      name: 'Single Agent Rejection',
       results: [
-        { acolyteId: 'test1', file: 'file1.js', decision: 'REJECT', reasoning: 'Dangerous change' }
+        { agentId: 'test1', file: 'file1.js', decision: 'REJECT', reasoning: 'Dangerous change' }
       ],
       expectedApproval: false
     }
@@ -147,18 +145,18 @@ async function testConsensusLogic() {
       const actualApproval = decision.approved;
 
       if (actualApproval === scenario.expectedApproval) {
-        console.log(`✅ PASS - Expected: ${scenario.expectedApproval}, Got: ${actualApproval}`);
+        console.log(`PASS - Expected: ${scenario.expectedApproval}, Got: ${actualApproval}`);
         if (!actualApproval) {
           console.log(`   Reasoning: ${decision.reasoning.split('\n')[0]}`);
         }
         passed++;
       } else {
-        console.log(`❌ FAIL - Expected: ${scenario.expectedApproval}, Got: ${actualApproval}`);
+        console.log(`FAIL - Expected: ${scenario.expectedApproval}, Got: ${actualApproval}`);
         console.log(`   Reasoning: ${decision.reasoning}`);
         failed++;
       }
     } catch (error) {
-      console.log(`❌ ERROR - ${error.message}`);
+      console.log(`ERROR - ${error.message}`);
       failed++;
     }
 
@@ -171,9 +169,9 @@ async function testConsensusLogic() {
   console.log(`Total: ${testScenarios.length}`);
 
   if (failed === 0) {
-    console.log('\n🎉 All consensus logic tests passed!');
+    console.log('\nSUCCESS - All consensus logic tests passed!');
   } else {
-    console.log(`\n⚠️  ${failed} test(s) failed`);
+    console.log(`\nWARN - ${failed} test(s) failed`);
     process.exit(1);
   }
 }

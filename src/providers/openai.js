@@ -1,6 +1,6 @@
 /**
  * OpenAI Provider for COMA
- * Handles acolyte consultation using direct OpenAI API calls
+ * Handles agent consultation using direct OpenAI API calls
  */
 
 import OpenAI from 'openai';
@@ -15,35 +15,31 @@ export class OpenAIProvider {
     this.repoPath = repoPath;
   }
 
-  async consultAcolyte(acolyte, toolData) {
+  async consultAgent(agent, context) {
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('OpenAI acolyte consultation timed out')), 30000)
+      setTimeout(() => reject(new Error('OpenAI agent consultation timed out')), 30000)
     );
 
-    const consultation = this.performConsultation(acolyte, toolData);
+    const consultation = this.performConsultation(agent, context);
 
     return Promise.race([consultation, timeout]);
   }
 
-  async performConsultation(acolyte, toolData) {
+  async performConsultation(agent, context) {
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    // Load base prompt
-    const promptPath = path.join(__dirname, '..', 'prompts', 'base.md');
-    const basePrompt = await fs.readFile(promptPath, 'utf8');
-
     // Add context if available
-    const contextSection = toolData.claudeContext
-      ? `\n\nCONTEXT FROM RECENT CLAUDE RESPONSES:\n${toolData.claudeContext}\n`
+    const contextSection = context.claudeContext
+      ? `\n\nCONTEXT FROM RECENT CLAUDE RESPONSES:\n${context.claudeContext}\n`
       : '';
 
-    const instruction = `${basePrompt.replace('{{FILE_PATH}}', acolyte.file).replace('{{FILE_TYPE_GUIDELINES}}', '')}${contextSection}
+    const instruction = `${agent.systemPrompt}${contextSection}
 
 PROPOSED CHANGE:
-Tool: ${toolData.toolName}
-Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
+Tool: ${context.toolName}
+Parameters: ${JSON.stringify(context.parameters, null, 2)}`;
 
     try {
       const response = await openai.chat.completions.create({
@@ -51,7 +47,7 @@ Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
         messages: [
           {
             role: "system",
-            content: "You are an acolyte agent protecting code files. Analyze proposed changes and respond with APPROVE or REJECT."
+            content: "You are an agent protecting code files. Analyze proposed changes and respond with APPROVE or REJECT."
           },
           {
             role: "user",
@@ -62,25 +58,12 @@ Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
       });
 
       const result = response.choices[0]?.message?.content || "No response";
-      return this.parseResponse(result);
+
+      // Return raw response as string per PROVIDERS.md spec
+      return result.trim();
 
     } catch (error) {
       throw new Error(`OpenAI API error: ${error.message}`);
-    }
-  }
-
-  parseResponse(output) {
-    // Clean up OpenAI's output
-    const cleanOutput = output.trim();
-
-    // Look for decision keywords in the entire output
-    if (cleanOutput.includes('APPROVE')) {
-      return { decision: 'APPROVE', reasoning: cleanOutput };
-    } else if (cleanOutput.includes('REJECT')) {
-      return { decision: 'REJECT', reasoning: cleanOutput };
-    } else {
-      // If no clear decision, treat as reject for safety
-      return { decision: 'REJECT', reasoning: `Unclear response: ${cleanOutput}` };
     }
   }
 }

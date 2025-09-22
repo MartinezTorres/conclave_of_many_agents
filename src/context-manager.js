@@ -1,6 +1,6 @@
 /**
  * Context Manager for COMA
- * Captures and manages Claude's recent text output for acolyte context
+ * Captures and manages Claude's recent text output for agent context
  */
 
 export class ContextManager {
@@ -61,9 +61,9 @@ export class ContextManager {
   }
 
   /**
-   * Get formatted context for acolytes
+   * Get formatted context for agents
    */
-  getContextForAcolytes() {
+  getContextForAgents() {
     const messages = this.getStoredMessages();
     if (messages.length === 0) {
       return 'No recent context available.';

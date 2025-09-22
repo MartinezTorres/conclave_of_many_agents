@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Test script for COMA error scenarios and edge cases
  */
@@ -18,11 +16,11 @@ class MockErrorProvider {
     this.errorType = errorType;
   }
 
-  async consultAcolyte(acolyte, toolData) {
+  async consultAgent(agent, toolData) {
     switch (this.errorType) {
       case 'timeout':
         return new Promise((resolve, reject) => {
-          setTimeout(() => reject(new Error('Acolyte consultation timed out')), 100);
+          setTimeout(() => reject(new Error('Agent consultation timed out')), 100);
         });
 
       case 'invalid_response':
@@ -52,8 +50,8 @@ class MockErrorProvider {
 async function testProviderErrors() {
   console.log('Testing provider error scenarios...\n');
 
-  const testAcolyte = {
-    id: 'test_acolyte',
+  const testAgent = {
+    id: 'test_agent',
     file: 'test.js',
     systemPrompt: 'Test prompt'
   };
@@ -65,12 +63,12 @@ async function testProviderErrors() {
   };
 
   const errorScenarios = [
-    { type: 'timeout', description: 'Acolyte consultation timeout' },
+    { type: 'timeout', description: 'Agent consultation timeout' },
     { type: 'api_error', description: 'API rate limit error' },
     { type: 'network_error', description: 'Network connection failure' },
     { type: 'permission_error', description: 'File permission error' },
     { type: 'invalid_response', description: 'Invalid decision response' },
-    { type: 'empty_response', description: 'Empty response from acolyte' },
+    { type: 'empty_response', description: 'Empty response from agent' },
     { type: 'malformed_response', description: 'Malformed decision response' }
   ];
 
@@ -80,19 +78,19 @@ async function testProviderErrors() {
     const provider = new MockErrorProvider(scenario.type);
 
     try {
-      const result = await provider.consultAcolyte(testAcolyte, testToolData);
+      const result = await provider.consultAgent(testAgent, testToolData);
 
       if (['invalid_response', 'empty_response', 'malformed_response'].includes(scenario.type)) {
-        console.log(`✅ PASS - Provider handled ${scenario.type} without throwing`);
+        console.log(`PASS PASS - Provider handled ${scenario.type} without throwing`);
         console.log(`   Decision: "${result.decision}", Reasoning: "${result.reasoning.substring(0, 50)}..."`);
       } else {
-        console.log(`❌ FAIL - Expected error for ${scenario.type}, got result:`, result);
+        console.log(`FAIL FAIL - Expected error for ${scenario.type}, got result:`, result);
       }
     } catch (error) {
       if (['timeout', 'api_error', 'network_error', 'permission_error'].includes(scenario.type)) {
-        console.log(`✅ PASS - Error thrown as expected: ${error.message}`);
+        console.log(`PASS PASS - Error thrown as expected: ${error.message}`);
       } else {
-        console.log(`❌ FAIL - Unexpected error for ${scenario.type}: ${error.message}`);
+        console.log(`FAIL FAIL - Unexpected error for ${scenario.type}: ${error.message}`);
       }
     }
     console.log('');
@@ -106,8 +104,8 @@ async function testFileSystemErrors() {
   console.log('Test 1: File system access errors');
 
   const provider = new ClaudeCodeProvider('/nonexistent/directory');
-  const testAcolyte = {
-    id: 'test_acolyte',
+  const testAgent = {
+    id: 'test_agent',
     file: 'test.js',
     systemPrompt: 'Test prompt'
   };
@@ -118,10 +116,10 @@ async function testFileSystemErrors() {
   };
 
   try {
-    await provider.consultAcolyte(testAcolyte, testToolData);
-    console.log('⚠️  WARN - Expected file system error but provider handled gracefully');
+    await provider.consultAgent(testAgent, testToolData);
+    console.log('WARN  WARN - Expected file system error but provider handled gracefully');
   } catch (error) {
-    console.log('✅ PASS - File system error handled correctly:', error.message.substring(0, 60) + '...');
+    console.log('PASS PASS - File system error handled correctly:', error.message.substring(0, 60) + '...');
   }
   console.log('');
 
@@ -146,11 +144,11 @@ async function testFileSystemErrors() {
 
     try {
       const mockProvider = new MockErrorProvider('normal');
-      await mockProvider.consultAcolyte(testAcolyte, scenario.data);
+      await mockProvider.consultAgent(testAgent, scenario.data);
 
-      console.log('  ✅ PASS - Provider handled invalid data gracefully');
+      console.log('  PASS PASS - Provider handled invalid data gracefully');
     } catch (error) {
-      console.log(`  ✅ PASS - Error handled: ${error.message.substring(0, 50)}...`);
+      console.log(`  PASS PASS - Error handled: ${error.message.substring(0, 50)}...`);
     }
   }
   console.log('');
@@ -159,10 +157,10 @@ async function testFileSystemErrors() {
 async function testConcurrencyErrors() {
   console.log('Testing concurrency and race condition scenarios...\n');
 
-  // Test 1: Multiple simultaneous acolyte consultations with errors
-  console.log('Test 1: Multiple acolytes with mixed success/failure');
+  // Test 1: Multiple simultaneous agent consultations with errors
+  console.log('Test 1: Multiple agents with mixed success/failure');
 
-  const acolytes = [
+  const agents = [
     { id: 'success1', file: 'file1.js', systemPrompt: 'Test' },
     { id: 'timeout1', file: 'file2.js', systemPrompt: 'Test' },
     { id: 'success2', file: 'file3.js', systemPrompt: 'Test' },
@@ -184,10 +182,10 @@ async function testConcurrencyErrors() {
   };
 
   try {
-    const promises = acolytes.map((acolyte, index) =>
-      providers[index].consultAcolyte(acolyte, toolData)
-        .then(result => ({ acolyteId: acolyte.id, success: true, result }))
-        .catch(error => ({ acolyteId: acolyte.id, success: false, error: error.message }))
+    const promises = agents.map((agent, index) =>
+      providers[index].consultAgent(agent, toolData)
+        .then(result => ({ agentId: agent.id, success: true, result }))
+        .catch(error => ({ agentId: agent.id, success: false, error: error.message }))
     );
 
     const results = await Promise.all(promises);
@@ -196,21 +194,21 @@ async function testConcurrencyErrors() {
     const failures = results.filter(r => !r.success).length;
 
     if (successes === 3 && failures === 2) {
-      console.log('✅ PASS - Concurrent acolyte consultations handled correctly');
+      console.log('PASS - Concurrent agent consultations handled correctly');
       console.log(`   Successes: ${successes}, Failures: ${failures}`);
     } else {
-      console.log(`❌ FAIL - Expected 3 successes and 2 failures, got ${successes} successes and ${failures} failures`);
+      console.log(`FAIL FAIL - Expected 3 successes and 2 failures, got ${successes} successes and ${failures} failures`);
     }
   } catch (error) {
-    console.log(`❌ FAIL - Unexpected error in concurrent test: ${error.message}`);
+    console.log(`FAIL FAIL - Unexpected error in concurrent test: ${error.message}`);
   }
   console.log('');
 
   // Test 2: Resource exhaustion simulation
-  console.log('Test 2: Resource exhaustion with many concurrent acolytes');
+  console.log('Test 2: Resource exhaustion with many concurrent agents');
 
-  const manyAcolytes = Array.from({ length: 20 }, (_, i) => ({
-    id: `acolyte_${i}`,
+  const manyAgents = Array.from({ length: 20 }, (_, i) => ({
+    id: `agent_${i}`,
     file: `file${i}.js`,
     systemPrompt: 'Test'
   }));
@@ -218,8 +216,8 @@ async function testConcurrencyErrors() {
   const startTime = Date.now();
 
   try {
-    const promises = manyAcolytes.map(acolyte =>
-      new MockErrorProvider('normal').consultAcolyte(acolyte, toolData)
+    const promises = manyAgents.map(agent =>
+      new MockErrorProvider('normal').consultAgent(agent, toolData)
         .catch(error => ({ error: error.message }))
     );
 
@@ -228,10 +226,10 @@ async function testConcurrencyErrors() {
 
     const errors = results.filter(r => r.error).length;
 
-    console.log(`✅ PASS - Handled ${manyAcolytes.length} concurrent acolytes in ${endTime - startTime}ms`);
-    console.log(`   Errors: ${errors}/${manyAcolytes.length}`);
+    console.log(`PASS - Handled ${manyAgents.length} concurrent agents in ${endTime - startTime}ms`);
+    console.log(`   Errors: ${errors}/${manyAgents.length}`);
   } catch (error) {
-    console.log(`❌ FAIL - Resource exhaustion test failed: ${error.message}`);
+    console.log(`FAIL FAIL - Resource exhaustion test failed: ${error.message}`);
   }
   console.log('');
 }
@@ -247,16 +245,16 @@ async function testEnvironmentErrors() {
 
   try {
     const openaiProvider = new OpenAIProvider('/tmp');
-    const testAcolyte = { id: 'test', file: 'test.js', systemPrompt: 'Test' };
+    const testAgent = { id: 'test', file: 'test.js', systemPrompt: 'Test' };
     const testToolData = { toolName: 'Edit', parameters: {} };
 
-    await openaiProvider.consultAcolyte(testAcolyte, testToolData);
-    console.log('❌ FAIL - Should have failed with missing API key');
+    await openaiProvider.consultAgent(testAgent, testToolData);
+    console.log('FAIL FAIL - Should have failed with missing API key');
   } catch (error) {
     if (error.message.includes('API') || error.message.includes('key') || error.message.includes('401')) {
-      console.log('✅ PASS - Missing API key error handled correctly');
+      console.log('PASS PASS - Missing API key error handled correctly');
     } else {
-      console.log(`✅ PASS - Error handled (may be different API error): ${error.message}`);
+      console.log(`PASS PASS - Error handled (may be different API error): ${error.message}`);
     }
   } finally {
     // Restore API key if it existed
@@ -271,9 +269,9 @@ async function testEnvironmentErrors() {
 
   try {
     const provider = new ClaudeCodeProvider('/nonexistent/directory/path');
-    console.log('✅ PASS - Provider created with invalid directory (validation deferred)');
+    console.log('PASS PASS - Provider created with invalid directory (validation deferred)');
   } catch (error) {
-    console.log(`✅ PASS - Invalid directory error: ${error.message}`);
+    console.log(`PASS PASS - Invalid directory error: ${error.message}`);
   }
   console.log('');
 }
@@ -287,7 +285,7 @@ async function runAllErrorTests() {
     await testConcurrencyErrors();
     await testEnvironmentErrors();
 
-    console.log('🎉 All error scenario tests completed!');
+    console.log('SUCCESS All error scenario tests completed!');
     console.log('\nThese tests verify that COMA handles various failure modes gracefully');
     console.log('and continues to provide security even when individual components fail.');
 

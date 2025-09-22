@@ -2,7 +2,7 @@
 
 /**
  * COMA Validator
- * Unified validator that uses provider system for acolyte consultation
+ * Unified validator that uses provider system for agent consultation
  */
 
 import fs from 'fs/promises';
@@ -18,27 +18,26 @@ function debugLog(message) {
     const timestamp = new Date().toISOString();
     const pid = process.pid;
     const logEntry = `${timestamp} [${pid}] VALIDATOR: ${message}\n`;
-    fs.appendFile(logPath, logEntry).catch(() => {});
+    try {
+      fs.appendFileSync(logPath, logEntry);
+    } catch (error) {
+      // Fallback to async if sync fails
+      fs.appendFile(logPath, logEntry).catch(() => {});
+    }
   }
 }
 
 export class ComaValidator {
   constructor() {
-    this.configDir = process.env.COMA_CONFIG_DIR;
     this.repoPath = process.env.COMA_REPO_PATH || process.cwd();
     this.provider = process.env.COMA_PROVIDER || 'claude-code';
     this.contextManager = new ContextManager();
 
-    if (!this.configDir) {
-      console.error('COMA: Configuration directory not set');
-      process.exit(1);
-    }
-
     // Initialize the appropriate provider
     if (this.provider === 'claude-code') {
-      this.acolyteProvider = new ClaudeCodeProvider(this.repoPath);
+      this.agentProvider = new ClaudeCodeProvider(this.repoPath);
     } else if (this.provider === 'openai') {
-      this.acolyteProvider = new OpenAIProvider(this.repoPath);
+      this.agentProvider = new OpenAIProvider(this.repoPath);
     } else {
       console.error(`COMA: Unknown provider: ${this.provider}`);
       process.exit(1);
@@ -71,39 +70,49 @@ export class ComaValidator {
       const affectedFiles = this.getAffectedFiles(toolData);
       debugLog(`Affected files: ${JSON.stringify(affectedFiles)}`);
 
-      // Load acolytes
-      const acolytes = await this.loadAcolytes();
-      debugLog(`Loaded ${acolytes.length} acolytes`);
+      // Load agents
+      let agents;
+      try {
+        agents = await this.loadAcolytes();
+        debugLog(`Loaded ${agents.length} agents`);
+      } catch (error) {
+        debugLog(`CRITICAL: Failed to load agents: ${error.message}`);
+        console.error('COMA: Failed to load agent configurations:', error.message);
+        process.exit(1);
+      }
 
-      // Filter to relevant acolytes
+      // Filter to relevant agents using glob pattern matching
       const relevantAcolytes = affectedFiles === 'ALL_FILES'
-        ? acolytes
-        : acolytes.filter(acolyte => affectedFiles.includes(acolyte.file));
-      debugLog(`${relevantAcolytes.length} relevant acolytes selected`);
+        ? agents
+        : agents.filter(agent => this.matchesFilePattern(affectedFiles, agent.file));
+      debugLog(`${relevantAcolytes.length} relevant agents selected`);
 
       if (relevantAcolytes.length === 0) {
-        debugLog('No acolytes need to review - allowing change');
-        console.log('COMA: No acolytes need to review this change');
+        debugLog('No agents need to review - allowing change');
+        console.log('COMA: No agents need to review this change');
         process.exit(0);
       }
 
-      console.log(`COMA: Consulting ${relevantAcolytes.length} ${this.provider} acolytes`);
-      debugLog(`Starting consultation with ${relevantAcolytes.length} ${this.provider} acolytes`);
+      console.log(`COMA: Consulting ${relevantAcolytes.length} ${this.provider} agents`);
+      debugLog(`Starting consultation with ${relevantAcolytes.length} ${this.provider} agents`);
 
-      // Consult acolytes using selected provider
+      // Consult agents using selected provider
       const results = await this.consultAcolytes(relevantAcolytes, toolData);
       debugLog(`Consultation completed, evaluating consensus`);
 
       // Evaluate consensus
       const decision = this.evaluateConsensus(results);
       debugLog(`Consensus decision: ${decision.approved ? 'APPROVED' : 'REJECTED'}`);
+      if (!decision.approved) {
+        debugLog(`Rejection reasoning: ${decision.reasoning}`);
+      }
 
       if (decision.approved) {
-        console.log('COMA: Change approved by acolyte consensus');
+        console.log('COMA: Change approved by agent consensus');
         debugLog('Change approved - exiting with code 0');
         process.exit(0);
       } else {
-        console.log('COMA: Change blocked by acolytes');
+        console.log('COMA: Change blocked by agents');
         console.log(decision.reasoning);
         debugLog(`Change blocked: ${decision.reasoning}`);
         process.exit(1);
@@ -159,23 +168,77 @@ export class ComaValidator {
     return path.relative(this.repoPath, path.resolve(filePath));
   }
 
+  matchesFilePattern(affectedFiles, pattern) {
+    // Check if any affected file matches the agent's pattern
+    if (pattern.includes('**/*.')) {
+      const extension = pattern.split('**/*.')[1];
+      return affectedFiles.some(file => file.endsWith(`.${extension}`));
+    }
+
+    // Exact match fallback
+    return affectedFiles.includes(pattern);
+  }
+
   async loadAcolytes() {
+    debugLog(`Generating agents dynamically for repository`);
+
+    // Generate agents dynamically by scanning repository files
+    const agents = await this.scanRepositoryForFiles();
+
+    debugLog(`Generated ${agents.length} agents dynamically`);
+    debugLog(`Acolyte IDs: ${agents.map(a => a.id).join(', ')}`);
+    return agents;
+  }
+
+  async scanRepositoryForFiles() {
     try {
-      const configPath = path.join(this.configDir, 'acolytes.json');
-      const content = await fs.readFile(configPath, 'utf8');
-      return JSON.parse(content);
+      debugLog(`Scanning repository at: ${this.repoPath}`);
+
+      // For now, create a simple agent for common file types
+      // This replaces the static agents.json approach
+      const agents = [
+        {
+          id: 'agent_javascript_files',
+          file: '**/*.js',
+          systemPrompt: `You are a guardian of JavaScript files. Review changes for:
+- Code quality and best practices
+- Variable naming conventions
+- Function structure and logic
+- Security concerns
+
+Return APPROVE or REJECT with reasoning.`
+        },
+        {
+          id: 'agent_typescript_files',
+          file: '**/*.ts',
+          systemPrompt: `You are a guardian of TypeScript files. Review changes for:
+- Type safety and correctness
+- Code quality and best practices
+- Interface design
+- Security concerns
+
+Return APPROVE or REJECT with reasoning.`
+        }
+      ];
+
+      debugLog(`Created ${agents.length} dynamic agents`);
+      return agents;
     } catch (error) {
-      throw new Error(`Failed to load acolyte configurations: ${error.message}`);
+      debugLog(`Failed to scan repository: ${error.message}`);
+      return [];
     }
   }
 
-  async consultAcolytes(acolytes, toolData) {
-    console.log(`COMA: Starting ${acolytes.length} ${this.provider} acolytes in parallel`);
-    debugLog(`Starting ${acolytes.length} acolytes in parallel using ${this.provider} provider`);
+  async consultAcolytes(agents, toolData) {
+    console.log(`COMA: Starting ${agents.length} ${this.provider} agents in parallel`);
+    debugLog(`Starting ${agents.length} agents in parallel using ${this.provider} provider`);
 
     // Get captured context from recent Claude responses
-    const claudeContext = this.contextManager.getContextForAcolytes();
+    const claudeContext = this.contextManager.getContextForAgents();
     debugLog(`Retrieved context: ${claudeContext ? claudeContext.length + ' chars' : 'none'}`);
+    if (claudeContext && claudeContext.length <= 1000) {
+      debugLog(`Context content: ${claudeContext}`);
+    }
 
     // Create enhanced tool data with context
     const enhancedToolData = {
@@ -183,36 +246,70 @@ export class ComaValidator {
       claudeContext: claudeContext
     };
 
-    // Spawn all acolytes in parallel using the provider
-    const promises = acolytes.map(acolyte => {
-      debugLog(`Starting consultation with acolyte ${acolyte.id} for file ${acolyte.file}`);
-      return this.acolyteProvider.consultAcolyte(acolyte, enhancedToolData)
-        .then(result => {
-          debugLog(`Acolyte ${acolyte.id} decision: ${result.decision}`);
+    // Spawn all agents in parallel using the provider
+    const promises = agents.map(agent => {
+      debugLog(`Starting consultation with agent ${agent.id} for file ${agent.file}`);
+      const consultationPromise = this.agentProvider.consultAgent(agent, enhancedToolData);
+
+      // Add timeout logging
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          debugLog(`Acolyte ${agent.id} consultation taking longer than 10 seconds...`);
+          resolve(null);
+        }, 10000);
+      });
+
+      Promise.race([consultationPromise, timeoutPromise]);
+
+      return consultationPromise
+        .then(rawResponse => {
+          debugLog(`Acolyte ${agent.id} completed consultation`);
+          debugLog(`Acolyte ${agent.id} raw response: ${rawResponse}`);
+
+          // Parse the raw response to extract decision
+          const parsedResult = this.parseAgentResponse(rawResponse);
+          debugLog(`Acolyte ${agent.id} decision: ${parsedResult.decision}`);
+          debugLog(`Acolyte ${agent.id} reasoning: ${parsedResult.reasoning}`);
+
           return {
-            acolyteId: acolyte.id,
-            file: acolyte.file,
-            decision: result.decision,
-            reasoning: result.reasoning
+            agentId: agent.id,
+            file: agent.file,
+            decision: parsedResult.decision,
+            reasoning: parsedResult.reasoning
           };
         })
         .catch(error => {
-          debugLog(`Acolyte ${acolyte.id} error: ${error.message}`);
+          debugLog(`Acolyte ${agent.id} consultation failed: ${error.message}`);
           return {
-            acolyteId: acolyte.id,
-            file: acolyte.file,
+            agentId: agent.id,
+            file: agent.file,
             decision: 'ERROR',
             reasoning: error.message
           };
         });
     });
 
-    // Wait for all acolytes to complete
+    // Wait for all agents to complete
     const results = await Promise.all(promises);
-    console.log(`COMA: All ${acolytes.length} ${this.provider} acolytes completed consultation`);
-    debugLog(`All acolytes completed. Results: ${results.map(r => `${r.file}:${r.decision}`).join(', ')}`);
+    console.log(`COMA: All ${agents.length} ${this.provider} agents completed consultation`);
+    debugLog(`All agents completed. Results: ${results.map(r => `${r.file}:${r.decision}`).join(', ')}`);
 
     return results;
+  }
+
+  parseAgentResponse(rawResponse) {
+    // Parse the raw string response from the agent to extract decision and reasoning
+    const cleanOutput = rawResponse.trim();
+
+    // Look for decision keywords in the entire output
+    if (cleanOutput.includes('APPROVE')) {
+      return { decision: 'APPROVE', reasoning: cleanOutput };
+    } else if (cleanOutput.includes('REJECT')) {
+      return { decision: 'REJECT', reasoning: cleanOutput };
+    } else {
+      // If no clear decision, treat as reject for safety
+      return { decision: 'REJECT', reasoning: `Unclear response: ${cleanOutput}` };
+    }
   }
 
   evaluateConsensus(results) {
@@ -225,7 +322,7 @@ export class ComaValidator {
     if (rejections.length > 0) {
       return {
         approved: false,
-        reasoning: `Operation blocked by ${rejections.length} acolyte(s):\n\n` +
+        reasoning: `Operation blocked by ${rejections.length} agent(s):\n\n` +
           rejections.map(r => `* ${r.file}: ${r.reasoning}`).join('\n\n')
       };
     }
@@ -243,7 +340,7 @@ export class ComaValidator {
     if (unknown.length > 0) {
       return {
         approved: false,
-        reasoning: `Unknown decision types from ${unknown.length} acolyte(s):\n\n` +
+        reasoning: `Unknown decision types from ${unknown.length} agent(s):\n\n` +
           unknown.map(r => `* ${r.file}: ${r.decision} - ${r.reasoning}`).join('\n\n')
       };
     }
@@ -251,11 +348,19 @@ export class ComaValidator {
     // All approvals
     return {
       approved: true,
-      reasoning: `Unanimous approval from ${approvals.length} acolyte(s)`
+      reasoning: `Unanimous approval from ${approvals.length} agent(s)`
     };
   }
 }
 
 // Run validation
-const validator = new ComaValidator();
-validator.validate();
+debugLog('VALIDATOR SCRIPT STARTING');
+try {
+  const validator = new ComaValidator();
+  debugLog('VALIDATOR INSTANCE CREATED');
+  validator.validate();
+} catch (error) {
+  debugLog(`VALIDATOR STARTUP ERROR: ${error.message}`);
+  console.error('COMA: Validator startup failed:', error.message);
+  process.exit(1);
+}

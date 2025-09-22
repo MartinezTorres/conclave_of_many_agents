@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-
 /**
- * Test script for COMA file scanning and acolyte generation
+ * Test script for COMA file scanning and agent generation
  */
 
 import fs from 'fs/promises';
@@ -176,7 +174,7 @@ async function testFileScanning() {
     let allExpectedFound = true;
     for (const expected of expectedFiles) {
       if (!scannedFiles.includes(expected)) {
-        console.log(`❌ Missing expected file: ${expected}`);
+        console.log(`FAIL Missing expected file: ${expected}`);
         allExpectedFound = false;
       }
     }
@@ -186,26 +184,26 @@ async function testFileScanning() {
       for (const pattern of ignoredPatterns) {
         if (pattern.endsWith('/')) {
           if (file.startsWith(pattern) || file.includes('/' + pattern)) {
-            console.log(`❌ Ignored file found: ${file} (matches ${pattern})`);
+            console.log(`FAIL Ignored file found: ${file} (matches ${pattern})`);
             noIgnored = false;
           }
         } else if (pattern.includes('*')) {
           const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
           if (regex.test(file)) {
-            console.log(`❌ Ignored file found: ${file} (matches ${pattern})`);
+            console.log(`FAIL Ignored file found: ${file} (matches ${pattern})`);
             noIgnored = false;
           }
         } else if (file === pattern || file.includes('/' + pattern)) {
-          console.log(`❌ Ignored file found: ${file} (matches ${pattern})`);
+          console.log(`FAIL Ignored file found: ${file} (matches ${pattern})`);
           noIgnored = false;
         }
       }
     }
 
     if (allExpectedFound && noIgnored) {
-      console.log('✅ PASS - File scanning with ignore patterns works correctly');
+      console.log('PASS PASS - File scanning with ignore patterns works correctly');
     } else {
-      console.log('❌ FAIL - File scanning issues detected');
+      console.log('FAIL FAIL - File scanning issues detected');
     }
     console.log('');
 
@@ -217,9 +215,9 @@ async function testFileScanning() {
     const emptyResults = await emptyScanner.scanRepository();
 
     if (emptyResults.length === 0) {
-      console.log('✅ PASS - Empty directory scan returns no files');
+      console.log('PASS PASS - Empty directory scan returns no files');
     } else {
-      console.log(`❌ FAIL - Empty directory scan returned ${emptyResults.length} files`);
+      console.log(`FAIL FAIL - Empty directory scan returned ${emptyResults.length} files`);
     }
 
     await fs.rm(emptyDir, { recursive: true });
@@ -243,15 +241,15 @@ async function testFileScanning() {
       const hasRestrictedFiles = resultsWithRestricted.some(file => file.startsWith('restricted/'));
 
       if (!hasRestrictedFiles) {
-        console.log('✅ PASS - Permission denied directories skipped gracefully');
+        console.log('PASS PASS - Permission denied directories skipped gracefully');
       } else {
-        console.log('❌ FAIL - Files from restricted directory were included');
+        console.log('FAIL FAIL - Files from restricted directory were included');
       }
 
       // Restore permissions for cleanup
       await fs.chmod(restrictedDir, 0o755);
     } catch (error) {
-      console.log(`✅ PASS - Permission test handled (may not work on all systems): ${error.message}`);
+      console.log(`PASS PASS - Permission test handled (may not work on all systems): ${error.message}`);
     }
     console.log('');
 
@@ -270,12 +268,12 @@ async function testFileScanning() {
       const hasSymlink = resultsWithLinks.includes('symlink.js');
 
       if (hasSymlink) {
-        console.log('✅ PASS - Symbolic links handled correctly (included as files)');
+        console.log('PASS PASS - Symbolic links handled correctly (included as files)');
       } else {
-        console.log('⚠️  WARN - Symbolic links not included (may be expected behavior)');
+        console.log('WARN  WARN - Symbolic links not included (may be expected behavior)');
       }
     } catch (error) {
-      console.log(`✅ PASS - Symbolic link test skipped (not supported): ${error.message}`);
+      console.log(`PASS PASS - Symbolic link test skipped (not supported): ${error.message}`);
     }
     console.log('');
 
@@ -303,15 +301,15 @@ async function testFileScanning() {
     let allTypesFound = true;
     for (const filename of Object.keys(fileTypes)) {
       if (!diverseResults.includes(filename)) {
-        console.log(`❌ Missing file type: ${filename}`);
+        console.log(`FAIL Missing file type: ${filename}`);
         allTypesFound = false;
       }
     }
 
     if (allTypesFound) {
-      console.log('✅ PASS - Various file types handled correctly');
+      console.log('PASS PASS - Various file types handled correctly');
     } else {
-      console.log('❌ FAIL - Some file types missing');
+      console.log('FAIL FAIL - Some file types missing');
     }
     console.log('');
 
@@ -324,10 +322,10 @@ async function testFileScanning() {
   console.log('=== File Scanning Tests Complete ===');
 }
 
-async function testAcolyteGeneration() {
-  console.log('\nTesting acolyte generation from scanned files...\n');
+async function testAgentGeneration() {
+  console.log('\nTesting agent generation from scanned files...\n');
 
-  // Test the acolyte generation logic
+  // Test the agent generation logic
   const testFiles = [
     'src/main.js',
     'components/Button.jsx',
@@ -337,15 +335,15 @@ async function testAcolyteGeneration() {
     'package.json'
   ];
 
-  console.log('Test: Acolyte ID generation');
+  console.log('Test: Agent ID generation');
 
   const expectedIds = [
-    'acolyte_src_main_js',
-    'acolyte_components_Button_jsx',
-    'acolyte_utils_helpers_ts',
-    'acolyte_styles_app_css',
-    'acolyte_docs_README_md',
-    'acolyte_package_json'
+    'agent_src_main_js',
+    'agent_components_Button_jsx',
+    'agent_utils_helpers_ts',
+    'agent_styles_app_css',
+    'agent_docs_README_md',
+    'agent_package_json'
   ];
 
   let idGenerationCorrect = true;
@@ -353,26 +351,26 @@ async function testAcolyteGeneration() {
   for (let i = 0; i < testFiles.length; i++) {
     const file = testFiles[i];
     const expectedId = expectedIds[i];
-    const actualId = `acolyte_${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const actualId = `agent_${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
     if (actualId !== expectedId) {
-      console.log(`❌ ID mismatch for ${file}: expected ${expectedId}, got ${actualId}`);
+      console.log(`FAIL ID mismatch for ${file}: expected ${expectedId}, got ${actualId}`);
       idGenerationCorrect = false;
     }
   }
 
   if (idGenerationCorrect) {
-    console.log('✅ PASS - Acolyte ID generation works correctly');
+    console.log('PASS PASS - Agent ID generation works correctly');
   } else {
-    console.log('❌ FAIL - Acolyte ID generation issues');
+    console.log('FAIL FAIL - Agent ID generation issues');
   }
 
-  console.log('\nExpected acolyte structure:');
+  console.log('\nExpected agent structure:');
   testFiles.forEach((file, i) => {
     console.log(`  ${expectedIds[i]}: protecting "${file}"`);
   });
 
-  console.log('\n=== Acolyte Generation Tests Complete ===');
+  console.log('\n=== Agent Generation Tests Complete ===');
 }
 
 async function runAllScanningTests() {
@@ -380,9 +378,9 @@ async function runAllScanningTests() {
 
   try {
     await testFileScanning();
-    await testAcolyteGeneration();
+    await testAgentGeneration();
 
-    console.log('\n🎉 All file scanning tests completed!');
+    console.log('\nSUCCESS All file scanning tests completed!');
     console.log('\nThese tests verify that COMA correctly identifies files to protect');
     console.log('and ignores irrelevant directories and file types.');
 

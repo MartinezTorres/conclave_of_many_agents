@@ -15,12 +15,12 @@ Claude-COMA is designed as a **dual-mode system** to serve different development
 - **Backward Compatible**: Works with any existing Claude Code setup
 
 ### Development Assistant Mode (Extended)
-- **Rich Features**: Advanced acolyte capabilities for teams wanting deeper integration
-- **Smart Analysis**: File-aware acolytes with context understanding
+- **Rich Features**: Advanced agent capabilities for teams wanting deeper integration
+- **Smart Analysis**: File-aware agents with context understanding
 - **Workflow Integration**: Git, CI/CD, and IDE integrations
 - **Team Coordination**: Shared configurations and learning from team patterns
 
-Both modes use the same core acolyte system but offer different levels of functionality based on your needs.
+Both modes use the same core agent system but offer different levels of functionality based on your needs.
 
 ## Core Problem
 
@@ -57,7 +57,7 @@ PreToolUse: [
 
 ### 2. Acolyte System
 
-Each file in the repository gets a dedicated AI "acolyte" that:
+Each file in the repository gets a dedicated AI "agent" that:
 - Understands the file's purpose and patterns
 - Acts as the "key stakeholder" for that file
 - Validates proposed changes against the file's context
@@ -70,10 +70,10 @@ Each file in the repository gets a dedicated AI "acolyte" that:
 
 ### 3. Provider Architecture
 
-COMA supports multiple AI providers for acolyte consultation:
+COMA supports multiple AI providers for agent consultation:
 
 #### Claude Code Provider
-- Spawns parallel Claude sessions for each acolyte
+- Spawns parallel Claude sessions for each agent
 - Uses `--allowed-tools Read,Grep,Glob,WebFetch,WebSearch` for read-only access
 - Leverages full Claude capabilities for analysis
 - No external API keys required
@@ -130,13 +130,13 @@ When a tool use is intercepted:
    ```
 
 2. **Acolyte Selection**
-   - For specific files: Only relevant file acolytes
-   - For Bash commands: All acolytes (any file could be affected)
+   - For specific files: Only relevant file agents
+   - For Bash commands: All agents (any file could be affected)
 
 3. **Parallel Consultation**
    ```javascript
-   const promises = acolytes.map(acolyte =>
-     provider.consultAcolyte(acolyte, enhancedToolData)
+   const promises = agents.map(agent =>
+     provider.consultAgent(agent, enhancedToolData)
    );
    const results = await Promise.all(promises);
    ```
@@ -164,9 +164,9 @@ COMA captures recent Claude context
          ↓
 COMA identifies affected files
          ↓
-COMA loads relevant acolytes
+COMA loads relevant agents
          ↓
-[Parallel] Each acolyte analyzes:
+[Parallel] Each agent analyzes:
   - Proposed change
   - Their file's context
   - Claude's recent reasoning
@@ -183,7 +183,7 @@ Operation proceeds or is blocked
 
 ### Base Prompt Template
 Located in `src/prompts/base.md`, this template:
-- Defines acolyte role and responsibilities
+- Defines agent role and responsibilities
 - Includes file-specific context via `{{FILE_PATH}}`
 - Provides analysis framework
 - Specifies required response format
@@ -219,8 +219,8 @@ test/
 ├── test-context-capture.js  # Context capture system tests
 ├── test-file-scanning.js    # Repository scanning tests
 ├── test-error-scenarios.js  # Error handling tests
-├── test-parallel-acolytes.js # Provider interface tests
-└── test-integration.js      # End-to-end integration test
+├── test-providers.js # Provider interface tests
+└── test-shakespeare-integration.cjs # End-to-end integration test
 ```
 
 **Key Changes:**
@@ -232,9 +232,9 @@ test/
 ## Security Considerations
 
 ### Acolyte Isolation
-- Claude Code acolytes run with restricted tool access
+- Claude Code agents run with restricted tool access
 - Only read-only operations permitted: `Read,Grep,Glob,WebFetch,WebSearch`
-- No `Edit,Write,Bash` access prevents acolyte interference
+- No `Edit,Write,Bash` access prevents agent interference
 
 ### Context Sanitization
 - Messages truncated to prevent prompt injection
@@ -254,7 +254,7 @@ test/
 ## Performance Characteristics
 
 ### Parallel Processing
-- All acolytes consult simultaneously (3-10 seconds typical)
+- All agents consult simultaneously (3-10 seconds typical)
 - Much faster than sequential consultation (30+ seconds)
 - Scales with number of CPU cores available
 
@@ -299,7 +299,7 @@ claude-coma test --debug               # Tests with debug logging
 
 ### Prompt Customization
 Users can edit `src/prompts/base.md` to:
-- Adjust acolyte behavior
+- Adjust agent behavior
 - Add project-specific guidelines
 - Modify decision criteria
 - Include custom validation rules
@@ -323,7 +323,7 @@ Users can edit `src/prompts/base.md` to:
 ### Performance Trade-offs
 - Added latency before each operation (3-10 seconds) when COMA active
 - Increased API usage for provider calls
-- Memory usage for parallel acolyte sessions
+- Memory usage for parallel agent sessions
 - Zero performance impact when COMA not running
 
 ### Coverage Limitations
@@ -387,6 +387,6 @@ Results Summary
 - Rollback mechanisms for failed operations
 
 ### Performance Optimization
-- Caching of acolyte decisions
+- Caching of agent decisions
 - Incremental validation for large changes
-- Smart acolyte selection based on change analysis
+- Smart agent selection based on change analysis

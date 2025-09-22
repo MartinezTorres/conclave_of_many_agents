@@ -2,6 +2,28 @@
 
 **NOTE: Before tackling any items below, these must be prioritized first based on project goals and requirements.**
 
+## Priority 0 - Immediate (Consistency Audit)
+- [x] Check package.json for consistency
+- [x] Check LICENSE for consistency
+- [x] Check README.md for consistency
+- [x] Check ARCHITECTURE.md for consistency
+- [x] Check TODO.md for consistency
+- [x] Check .gitignore for consistency
+- [x] Check src/claude-coma.js for consistency
+- [x] Check src/coma-validator.js for consistency
+- [x] Check src/context-capturer.js for consistency
+- [x] Check src/context-manager.js for consistency
+- [x] Check src/providers/claude-code.js for consistency
+- [x] Check src/providers/openai.js for consistency
+- [x] Check test/test-runner.js for consistency
+- [x] Check test/test-providers.js for consistency
+- [x] Check test/test-hook-management.js for consistency
+- [x] Check test/test-consensus-logic.js for consistency
+- [x] Check test/test-context-capture.js for consistency
+- [x] Check test/test-file-scanning.js for consistency
+- [x] Check test/test-error-scenarios.js for consistency
+- [x] Check test/test-shakespeare-integration.cjs for consistency
+
 ## Priority 1 - Critical (Must Fix Now)
 - [x] **Test end-to-end functionality with real repository** (✅ Integrated test suite with `claude-coma test`)
 - [x] **Verify hooks trigger correctly in Claude Code** (✅ Integration test validates hook triggering)
@@ -18,35 +40,35 @@
 - [ ] Context capture hook testing with real Claude Code sessions
 
 ## Architecture & Design Improvements (Future)
-- [x] **File Reading for Acolytes**: Enable acolytes to read actual file contents for informed decisions (✅ Already implemented via --allowed-tools)
-- [x] **Change Context Awareness**: Provide acolytes with user intent and commit message context (✅ Implemented via context capture system)
+- [x] **File Reading for Agents**: Enable agents to read actual file contents for informed decisions (✅ Already implemented via --allowed-tools)
+- [x] **Change Context Awareness**: Provide agents with user intent and commit message context (✅ Implemented via context capture system)
 - [ ] **Dual Mode Architecture**: Design clear separation between "Simple Protective Wrapper" and "Development Assistant" modes
-- [ ] **Acolyte Specialization**: Create file-type specific acolytes (JS, Python, Config, etc.)
-- [ ] **Role-based Acolytes**: Implement specialized roles (security, performance, style, documentation)
-- [ ] **Cross-file Analysis**: Enable acolytes to understand relationships between modified files
+- [ ] **Agent Specialization**: Create file-type specific agents (JS, Python, Config, etc.)
+- [ ] **Role-based Agents**: Implement specialized roles (security, performance, style, documentation)
+- [ ] **Cross-file Analysis**: Enable agents to understand relationships between modified files
 - [ ] **Enhanced Context Capture**: Capture more than 5 recent messages, include user prompts
 
 ## Security & Safety Improvements (Future)
-- [x] **Acolyte Sandboxing**: Restrict acolyte tools to read-only operations (✅ Implemented via --allowed-tools)
+- [x] **Agent Sandboxing**: Restrict agent tools to read-only operations (✅ Implemented via --allowed-tools)
 - [ ] **API Key Security**: Implement secure credential management and sandboxing
 - [ ] **Rate Limiting**: Add OpenAI API rate limiting and cost controls
-- [ ] **Prompt Injection Protection**: Secure acolyte prompts against malicious input
-- [ ] **Audit Trail**: Log all acolyte decisions and reasoning for review
-- [ ] **Decision History**: Track acolyte performance and false positive/negative rates
+- [ ] **Prompt Injection Protection**: Secure agent prompts against malicious input
+- [ ] **Audit Trail**: Log all agent decisions and reasoning for review
+- [ ] **Decision History**: Track agent performance and false positive/negative rates
 
 ## User Experience Enhancements (Needs Prioritization)
-- [ ] **Interactive Mode**: Allow follow-up questions and context provision to acolytes
-- [ ] **Override Mechanism**: Provide way to bypass acolyte rejections with justification
-- [ ] **Real-time Feedback**: Show acolyte analysis as user types/edits
-- [ ] **Conflict Resolution**: Help resolve disagreements between acolytes
-- [ ] **Learning Mode**: Allow acolytes to learn from user corrections
+- [ ] **Interactive Mode**: Allow follow-up questions and context provision to agents
+- [ ] **Override Mechanism**: Provide way to bypass agent rejections with justification
+- [ ] **Real-time Feedback**: Show agent analysis as user types/edits
+- [ ] **Conflict Resolution**: Help resolve disagreements between agents
+- [ ] **Learning Mode**: Allow agents to learn from user corrections
 
 ## Configuration Management (Needs Prioritization)
-- [ ] **Project Profiles**: Create repository-specific acolyte configurations
-- [ ] **Team Settings**: Shared acolyte behavior across team members
-- [ ] **Custom Prompts**: Allow customization of acolyte system prompts per project
-- [ ] **Ruleset Management**: Define and share coding standards as acolyte rules
-- [ ] **Training Data**: Feed project-specific examples to acolytes
+- [ ] **Project Profiles**: Create repository-specific agent configurations
+- [ ] **Team Settings**: Shared agent behavior across team members
+- [ ] **Custom Prompts**: Allow customization of agent system prompts per project
+- [ ] **Ruleset Management**: Define and share coding standards as agent rules
+- [ ] **Training Data**: Feed project-specific examples to agents
 
 ## Integration Features (Needs Prioritization)
 - [ ] **Git Integration**: Understand git history, branches, and conflict detection
@@ -85,7 +107,7 @@
 - [x] Test cleanup process works properly
 - [x] Extract hardcoded prompts to customizable base.md template
 - [x] Implement context capture system via hooks
-- [x] Add read-only tool restrictions for acolyte security
+- [x] Add read-only tool restrictions for agent security
 - [x] Create ARCHITECTURE.md with detailed technical documentation
 - [x] Add .gitignore with appropriate patterns
 
