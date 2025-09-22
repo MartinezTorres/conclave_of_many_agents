@@ -19,7 +19,7 @@ class TestableCleanComa {
   }
 
   // Copy methods from CleanComa for testing
-  async installHooks() {
+  async ensureHooksInstalled() {
     await fs.mkdir(this.userClaudeDir, { recursive: true });
 
     // Read existing user settings
@@ -31,86 +31,122 @@ class TestableCleanComa {
       // File doesn't exist, start fresh
     }
 
-    // Backup existing settings
-    if (userSettings.hooks || userSettings.mcps) {
-      await fs.writeFile(
-        path.join(this.userClaudeDir, 'settings.backup.json'),
-        JSON.stringify(userSettings, null, 2)
-      );
+    // Check if COMA hooks are already installed
+    const hasComaHooks = userSettings.hooks?.PreToolUse?.some(hook =>
+      hook.hooks?.some(h => h.command?.includes('claude-coma hook'))
+    );
+
+    if (hasComaHooks) {
+      return; // Already installed
     }
 
     // Add COMA hooks
     const comaHooks = {
-      hooks: {
-        PreToolUse: [
-          {
-            matcher: "Edit|MultiEdit|Write|Bash",
-            hooks: [
-              {
-                type: "command",
-                command: "/fake/path/coma-validator.js"
-              }
-            ]
-          }
-        ],
-        PostToolUse: [
-          {
-            matcher: ".*",
-            hooks: [
-              {
-                type: "command",
-                command: "COMA_HOOK_TYPE=PostToolUse node /fake/path/context-capturer.js"
-              }
-            ]
-          }
-        ]
-      }
+      PreToolUse: [
+        {
+          matcher: "Edit|MultiEdit|Write|Bash",
+          hooks: [
+            {
+              type: "command",
+              command: "node /fake/path/claude-coma.js hook PreToolUse"
+            }
+          ]
+        }
+      ],
+      PostToolUse: [
+        {
+          matcher: ".*",
+          hooks: [
+            {
+              type: "command",
+              command: "node /fake/path/claude-coma.js hook PostToolUse"
+            }
+          ]
+        }
+      ],
+      UserPromptSubmit: [
+        {
+          matcher: ".*",
+          hooks: [
+            {
+              type: "command",
+              command: "node /fake/path/claude-coma.js hook UserPromptSubmit"
+            }
+          ]
+        }
+      ]
     };
 
     // Merge with existing settings
     const mergedSettings = {
       ...userSettings,
-      ...comaHooks,
-      _comaActive: true
+      hooks: {
+        ...userSettings.hooks,
+        ...comaHooks
+      }
     };
 
     await fs.writeFile(this.userSettingsPath, JSON.stringify(mergedSettings, null, 2));
   }
 
-  async removeHooks() {
+  showCleanupInstructions() {
+    return `
+COMA Hook Removal Instructions:
+
+Hooks are installed in: ${this.userSettingsPath}
+
+To remove COMA hooks:
+1. Edit ~/.claude/settings.json
+2. Remove any hook entries containing 'claude-coma hook'
+3. Or delete the entire file if you have no other Claude Code settings
+
+Example COMA hook entries to remove:
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Edit|MultiEdit|Write|Bash",
+      "hooks": [{
+        "type": "command",
+        "command": "...claude-coma hook PreToolUse"
+      }]
+    }]
+  }
+}
+`;
+  }
+
+  // For testing purposes, we'll keep a simple remove method
+  async removeComaHooks() {
     try {
-      const backupPath = path.join(this.userClaudeDir, 'settings.backup.json');
+      const content = await fs.readFile(this.userSettingsPath, 'utf8');
+      const settings = JSON.parse(content);
 
-      try {
-        await fs.access(backupPath);
-        // Restore from backup
-        const backup = await fs.readFile(backupPath, 'utf8');
-        await fs.writeFile(this.userSettingsPath, backup);
-        await fs.unlink(backupPath);
-      } catch {
-        // No backup, check if we need to clean current settings
-        try {
-          const content = await fs.readFile(this.userSettingsPath, 'utf8');
-          const settings = JSON.parse(content);
-
-          if (settings._comaActive) {
-            // Remove COMA-specific settings
-            delete settings.hooks;
-            delete settings.mcps;
-            delete settings._comaActive;
-
-            if (Object.keys(settings).length === 0) {
-              await fs.unlink(this.userSettingsPath);
-            } else {
-              await fs.writeFile(this.userSettingsPath, JSON.stringify(settings, null, 2));
-            }
+      // Remove COMA hooks by filtering out commands containing 'claude-coma hook'
+      if (settings.hooks) {
+        Object.keys(settings.hooks).forEach(hookType => {
+          settings.hooks[hookType] = settings.hooks[hookType].filter(hookGroup => {
+            hookGroup.hooks = hookGroup.hooks.filter(hook =>
+              !hook.command?.includes('claude-coma hook')
+            );
+            return hookGroup.hooks.length > 0;
+          });
+          if (settings.hooks[hookType].length === 0) {
+            delete settings.hooks[hookType];
           }
-        } catch {
-          // Settings file doesn't exist or is invalid, nothing to clean
+        });
+
+        if (Object.keys(settings.hooks).length === 0) {
+          delete settings.hooks;
         }
       }
-    } catch (error) {
-      throw error;
+
+      if (Object.keys(settings).length === 0) {
+        await fs.unlink(this.userSettingsPath);
+      } else {
+        await fs.writeFile(this.userSettingsPath, JSON.stringify(settings, null, 2));
+      }
+    } catch {
+      // Settings file doesn't exist or is invalid, nothing to clean
     }
   }
 
@@ -141,7 +177,7 @@ class TestableCleanComa {
 }
 
 async function testHookManagement() {
-  console.log('Testing COMA hook management...\n');
+  console.log('Testing COMA hook management (updated for permanent hooks)...\n');
 
   // Create temporary test directory
   const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'coma-test-'));

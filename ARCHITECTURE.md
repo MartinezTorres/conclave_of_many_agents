@@ -32,6 +32,8 @@ Claude Code operates with limited context windows and cannot examine all files w
 
 ## Solution Architecture
 
+**Updated Design (v2):** COMA now uses a **permanent hook installation** model with **transparent operation** when not actively running. This simplifies deployment and ensures perfect integration with other Claude Code tools.
+
 ### 1. Hook-Based Interception
 
 COMA uses Claude Code's hook system to intercept operations before they execute:
@@ -40,10 +42,12 @@ COMA uses Claude Code's hook system to intercept operations before they execute:
 PreToolUse: [
   {
     matcher: "Edit|MultiEdit|Write|Bash",
-    hooks: [{ type: "command", command: "coma-validator.js" }]
+    hooks: [{ type: "command", command: "node claude-coma.js hook PreToolUse" }]
   }
 ]
 ```
+
+**New Architecture:** All hooks now route through `claude-coma` as the single entry point, which then delegates to appropriate handlers based on the `CLAUDE_COMA` environment variable.
 
 **Intercepted Operations:**
 - `Edit`: File modifications
@@ -87,8 +91,8 @@ COMA supports multiple AI providers for acolyte consultation:
 **The Solution:** Multi-hook context capture:
 
 ```javascript
-PostToolUse: ["capture all tool results"]
-UserPromptSubmit: ["capture conversation flow"]
+PostToolUse: [{ command: "node claude-coma.js hook PostToolUse" }]
+UserPromptSubmit: [{ command: "node claude-coma.js hook UserPromptSubmit" }]
 ```
 
 **Context Storage:**
@@ -97,7 +101,22 @@ UserPromptSubmit: ["capture conversation flow"]
 - Messages truncated to 2000 characters to avoid bloat
 - No file I/O required (faster, cleaner)
 
-### 5. Parallel Consultation Process
+### 5. Debug Logging System
+
+**New Feature:** Comprehensive debug logging for hook troubleshooting:
+
+```bash
+claude-coma --debug                    # Logs to .claude-coma.log
+claude-coma --debug=/tmp/debug.log     # Logs to custom path
+```
+
+**Debug Architecture:**
+- `CLAUDE_COMA_DEBUG` environment variable carries log path to all processes
+- Atomic file appends prevent race conditions
+- Structured format: `timestamp [pid] COMPONENT: message`
+- Components: Main, VALIDATOR, CONTEXT for easy filtering
+
+### 6. Parallel Consultation Process
 
 When a tool use is intercepted:
 
@@ -129,10 +148,17 @@ When a tool use is intercepted:
 
 ## Decision Process Flow
 
+**Updated with Environment-Based Activation:**
+
 ```
 Claude wants to edit file.js
          ↓
-PreToolUse hook fires
+PreToolUse hook fires: "claude-coma hook PreToolUse"
+         ↓
+COMA checks CLAUDE_COMA environment variable
+         ↓
+If CLAUDE_COMA=1: Proceed with validation
+If CLAUDE_COMA unset: Exit silently (transparent operation)
          ↓
 COMA captures recent Claude context
          ↓
@@ -178,7 +204,7 @@ Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
 
 ```
 src/
-├── claude-coma.js           # Main launcher, settings management
+├── claude-coma.js           # Main launcher, hook router, settings management
 ├── coma-validator.js        # Central validation coordinator
 ├── context-manager.js       # Context capture and storage
 ├── context-capturer.js      # Hook-based context collection
@@ -188,6 +214,11 @@ src/
     ├── claude-code.js      # Claude Code provider implementation
     └── openai.js           # OpenAI provider implementation
 ```
+
+**Key Changes:**
+- `claude-coma.js` now serves as the central hook router
+- All hooks call `claude-coma hook <type>` for consistency
+- Debug logging added to all components
 
 ## Security Considerations
 
@@ -205,6 +236,11 @@ src/
 - Unanimous approval required for operations
 - Any single rejection blocks the entire operation
 - Conservative approach prioritizes safety over convenience
+
+### Transparent Operation
+- Hooks installed permanently but only active when `CLAUDE_COMA=1`
+- Perfect integration with other Claude Code tools
+- No performance impact when COMA not running
 
 ## Performance Characteristics
 
@@ -230,6 +266,12 @@ claude-coma --provider openai  # Use OpenAI provider
 claude-coma                    # Use Claude Code provider (default)
 ```
 
+### Debug Logging
+```bash
+claude-coma --debug                    # Enable debug logging
+claude-coma --debug=/path/to/log       # Custom log path
+```
+
 ### Prompt Customization
 Users can edit `src/prompts/base.md` to:
 - Adjust acolyte behavior
@@ -238,6 +280,8 @@ Users can edit `src/prompts/base.md` to:
 - Include custom validation rules
 
 ### Environment Variables
+- `CLAUDE_COMA`: Session activation flag (set to "1" when active)
+- `CLAUDE_COMA_DEBUG`: Debug log file path (optional)
 - `COMA_PROVIDER`: Provider selection
 - `COMA_CONFIG_DIR`: Temporary configuration storage
 - `COMA_REPO_PATH`: Repository root path
@@ -252,14 +296,20 @@ Users can edit `src/prompts/base.md` to:
 - Limited to last 5 responses (environment variable size constraints)
 
 ### Performance Trade-offs
-- Added latency before each operation (3-10 seconds)
+- Added latency before each operation (3-10 seconds) when COMA active
 - Increased API usage for provider calls
 - Memory usage for parallel acolyte sessions
+- Zero performance impact when COMA not running
 
 ### Coverage Limitations
 - Only covers modification operations
 - Read operations are not validated
 - Some edge cases may not be caught
+
+### Hook Management
+- Hooks installed permanently (no automatic cleanup)
+- Manual removal required if COMA no longer wanted
+- Settings merge rather than backup/restore approach
 
 ## Future Considerations
 

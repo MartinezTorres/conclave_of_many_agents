@@ -11,6 +11,17 @@ import { ClaudeCodeProvider } from './providers/claude-code.js';
 import { OpenAIProvider } from './providers/openai.js';
 import { ContextManager } from './context-manager.js';
 
+// Debug logging utility
+function debugLog(message) {
+  const logPath = process.env.CLAUDE_COMA_DEBUG;
+  if (logPath) {
+    const timestamp = new Date().toISOString();
+    const pid = process.pid;
+    const logEntry = `${timestamp} [${pid}] VALIDATOR: ${message}\n`;
+    fs.appendFile(logPath, logEntry).catch(() => {});
+  }
+}
+
 export class ComaValidator {
   constructor() {
     this.configDir = process.env.COMA_CONFIG_DIR;
@@ -35,57 +46,72 @@ export class ComaValidator {
   }
 
   async validate() {
+    debugLog('Starting validation process');
     try {
       // Parse tool call from Claude Code
       const toolData = this.parseToolCall();
+      debugLog(`Parsed tool data: ${JSON.stringify(toolData)}`);
 
       if (!toolData) {
+        debugLog('No tool data provided - exiting');
         console.log('COMA: No tool data provided');
         process.exit(0);
       }
 
       // Check if this is a modification operation
       if (!this.isModificationOperation(toolData)) {
+        debugLog(`${toolData.toolName} is not a modification operation - allowing`);
         process.exit(0); // Allow read operations
       }
 
       console.log(`COMA: Validating ${toolData.toolName} operation`);
+      debugLog(`Validating ${toolData.toolName} operation`);
 
       // Get affected files
       const affectedFiles = this.getAffectedFiles(toolData);
+      debugLog(`Affected files: ${JSON.stringify(affectedFiles)}`);
 
       // Load acolytes
       const acolytes = await this.loadAcolytes();
+      debugLog(`Loaded ${acolytes.length} acolytes`);
 
       // Filter to relevant acolytes
       const relevantAcolytes = affectedFiles === 'ALL_FILES'
         ? acolytes
         : acolytes.filter(acolyte => affectedFiles.includes(acolyte.file));
+      debugLog(`${relevantAcolytes.length} relevant acolytes selected`);
 
       if (relevantAcolytes.length === 0) {
+        debugLog('No acolytes need to review - allowing change');
         console.log('COMA: No acolytes need to review this change');
         process.exit(0);
       }
 
       console.log(`COMA: Consulting ${relevantAcolytes.length} ${this.provider} acolytes`);
+      debugLog(`Starting consultation with ${relevantAcolytes.length} ${this.provider} acolytes`);
 
       // Consult acolytes using selected provider
       const results = await this.consultAcolytes(relevantAcolytes, toolData);
+      debugLog(`Consultation completed, evaluating consensus`);
 
       // Evaluate consensus
       const decision = this.evaluateConsensus(results);
+      debugLog(`Consensus decision: ${decision.approved ? 'APPROVED' : 'REJECTED'}`);
 
       if (decision.approved) {
         console.log('COMA: Change approved by acolyte consensus');
+        debugLog('Change approved - exiting with code 0');
         process.exit(0);
       } else {
         console.log('COMA: Change blocked by acolytes');
         console.log(decision.reasoning);
+        debugLog(`Change blocked: ${decision.reasoning}`);
         process.exit(1);
       }
 
     } catch (error) {
       console.error('COMA: Validation error:', error.message);
+      debugLog(`Validation error: ${error.message}`);
       process.exit(1);
     }
   }
@@ -145,9 +171,11 @@ export class ComaValidator {
 
   async consultAcolytes(acolytes, toolData) {
     console.log(`COMA: Starting ${acolytes.length} ${this.provider} acolytes in parallel`);
+    debugLog(`Starting ${acolytes.length} acolytes in parallel using ${this.provider} provider`);
 
     // Get captured context from recent Claude responses
     const claudeContext = this.contextManager.getContextForAcolytes();
+    debugLog(`Retrieved context: ${claudeContext ? claudeContext.length + ' chars' : 'none'}`);
 
     // Create enhanced tool data with context
     const enhancedToolData = {
@@ -156,25 +184,33 @@ export class ComaValidator {
     };
 
     // Spawn all acolytes in parallel using the provider
-    const promises = acolytes.map(acolyte =>
-      this.acolyteProvider.consultAcolyte(acolyte, enhancedToolData)
-        .then(result => ({
-          acolyteId: acolyte.id,
-          file: acolyte.file,
-          decision: result.decision,
-          reasoning: result.reasoning
-        }))
-        .catch(error => ({
-          acolyteId: acolyte.id,
-          file: acolyte.file,
-          decision: 'ERROR',
-          reasoning: error.message
-        }))
-    );
+    const promises = acolytes.map(acolyte => {
+      debugLog(`Starting consultation with acolyte ${acolyte.id} for file ${acolyte.file}`);
+      return this.acolyteProvider.consultAcolyte(acolyte, enhancedToolData)
+        .then(result => {
+          debugLog(`Acolyte ${acolyte.id} decision: ${result.decision}`);
+          return {
+            acolyteId: acolyte.id,
+            file: acolyte.file,
+            decision: result.decision,
+            reasoning: result.reasoning
+          };
+        })
+        .catch(error => {
+          debugLog(`Acolyte ${acolyte.id} error: ${error.message}`);
+          return {
+            acolyteId: acolyte.id,
+            file: acolyte.file,
+            decision: 'ERROR',
+            reasoning: error.message
+          };
+        });
+    });
 
     // Wait for all acolytes to complete
     const results = await Promise.all(promises);
     console.log(`COMA: All ${acolytes.length} ${this.provider} acolytes completed consultation`);
+    debugLog(`All acolytes completed. Results: ${results.map(r => `${r.file}:${r.decision}`).join(', ')}`);
 
     return results;
   }

@@ -9,12 +9,12 @@
 
 ## Priority 2 - Essential (Before Release)
 - [ ] Add configuration options for timeouts and prompts
-- [ ] Implement verbose/debug mode
+- [x] **Implement verbose/debug mode** (✅ Added --debug flag with atomic logging)
 - [ ] Add real usage examples to documentation
 - [ ] Create troubleshooting guide
 
 ## Priority 3 - Important (Quality of Life)
-- [ ] Add performance metrics and logging
+- [x] **Add performance metrics and logging** (✅ Debug logging system implemented)
 - [ ] Context capture hook testing with real Claude Code sessions
 
 ## Architecture & Design Improvements (Future)
@@ -54,6 +54,16 @@
 - [ ] **IDE Extensions**: VS Code, JetBrains, and other editor integrations
 - [ ] **CI/CD Integration**: GitHub Actions, pre-commit hooks, automated testing
 - [ ] **Multi-developer Coordination**: Handle concurrent changes from team members
+
+## Recent Major Improvements (January 2025)
+- [x] **Permanent Hook Installation**: Simplified to install-once model, no temporary backup/restore
+- [x] **Transparent Operation**: Hooks installed permanently but only active when CLAUDE_COMA=1 set
+- [x] **Unified Entry Point**: All hooks now route through 'claude-coma hook <type>' for consistency
+- [x] **Environment-Based Activation**: Perfect integration with other Claude Code tools
+- [x] **Debug Logging System**: Comprehensive atomic logging with --debug flag support
+- [x] **Updated Test Suite**: All tests updated for new permanent hook architecture
+- [x] **Architecture Documentation**: ARCHITECTURE.md updated to reflect new design
+- [x] **Cleanup Instructions**: Changed from automatic cleanup to user-friendly instructions
 
 ## Completed Items
 - [x] Create standard npm directory structure

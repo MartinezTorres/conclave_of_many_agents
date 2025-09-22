@@ -13,6 +13,17 @@ import os from 'os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Debug logging utility
+function debugLog(message) {
+  const logPath = process.env.CLAUDE_COMA_DEBUG;
+  if (logPath) {
+    const timestamp = new Date().toISOString();
+    const pid = process.pid;
+    const logEntry = `${timestamp} [${pid}] ${message}\n`;
+    fs.appendFile(logPath, logEntry).catch(() => {});
+  }
+}
+
 class CleanComa {
   constructor() {
     this.userClaudeDir = path.join(os.homedir(), '.claude');
@@ -25,14 +36,31 @@ class CleanComa {
   async run() {
     const args = process.argv.slice(2);
 
-    if (args.includes('cleanup')) {
-      return this.cleanup();
+    // Handle subcommands
+    if (args[0] === 'hook') {
+      return this.handleHookCommand(args.slice(1));
+    }
+
+    if (args[0] === 'cleanup') {
+      return this.showCleanupInstructions();
     }
 
     if (args.includes('--help') || args.includes('-h')) {
       this.showHelp();
       return;
     }
+
+    // Parse debug option
+    let debugPath = null;
+    if (args.includes('--debug')) {
+      debugPath = '.claude-coma.log';
+    } else {
+      const debugFlag = args.find(arg => arg.startsWith('--debug='));
+      if (debugFlag) {
+        debugPath = debugFlag.split('=')[1];
+      }
+    }
+    this.debugPath = debugPath;
 
     // Parse provider option
     const providerIndex = args.indexOf('--provider');
@@ -46,7 +74,10 @@ class CleanComa {
       process.exit(1);
     }
 
-    // Default: temporary protection
+    // Auto-install hooks if needed
+    await this.ensureHooksInstalled();
+
+    // Default: run with protection
     return this.runWithProtection();
   }
 
@@ -55,44 +86,53 @@ class CleanComa {
 Claude-COMA (Conclave of Many Agents)
 
 Usage:
-  claude-coma [options]         Run Claude with temporary acolyte protection
-  claude-coma cleanup          Remove any COMA hooks from user settings
+  claude-coma [options]         Run Claude with acolyte protection
+  claude-coma cleanup          Show how to remove COMA hooks
+  claude-coma hook <type>      Hook entry point (internal use)
 
 Options:
   --provider <type>            Acolyte provider: "claude-code" (default) or "openai"
+  --debug                      Enable debug logging to .claude-coma.log
+  --debug=<path>               Enable debug logging to custom path
   --help, -h                   Show this help
 
 Examples:
   claude-coma                          # Protected Claude with Claude Code acolytes
   claude-coma --provider openai       # Protected Claude with OpenAI acolytes
-  claude-coma cleanup                  # Clean up hooks
+  claude-coma --debug                  # With debug logging
+  claude-coma --debug=/tmp/debug.log   # With custom debug log path
+  claude-coma cleanup                  # Show removal instructions
 `);
   }
 
   async runWithProtection() {
     console.log('COMA: Initializing acolyte protection...');
+    debugLog('Starting COMA protection session');
+
+    // Scan repository and create acolytes
+    await this.setupAcolytes();
+
+    console.log('COMA: Launching Claude with protection active');
+    debugLog('Launching Claude with COMA environment');
 
     try {
-      // Install hooks temporarily
-      await this.installHooks();
-
-      // Scan repository and create acolytes
-      await this.setupAcolytes();
-
-      console.log('COMA: Launching Claude with protection active');
+      // Set environment variables for COMA
+      const claudeEnv = { ...process.env, CLAUDE_COMA: '1' };
+      if (this.debugPath) {
+        claudeEnv.CLAUDE_COMA_DEBUG = this.debugPath;
+        debugLog(`Debug logging enabled: ${this.debugPath}`);
+      }
 
       // Launch Claude
-      await this.launchClaude();
-
+      await this.launchClaude(claudeEnv);
     } finally {
-      // Always cleanup
-      console.log('COMA: Cleaning up temporary hooks...');
-      await this.removeHooks();
+      // Cleanup temporary files
+      debugLog('Cleaning up temporary files');
       await this.cleanupTemp();
     }
   }
 
-  async installHooks() {
+  async ensureHooksInstalled() {
     await fs.mkdir(this.userClaudeDir, { recursive: true });
 
     // Read existing user settings
@@ -104,105 +144,89 @@ Examples:
       // File doesn't exist, start fresh
     }
 
-    // Backup existing settings
-    if (userSettings.hooks || userSettings.mcps) {
-      await fs.writeFile(
-        path.join(this.userClaudeDir, 'settings.backup.json'),
-        JSON.stringify(userSettings, null, 2)
-      );
-      console.log('COMA: Backed up existing user settings');
+    // Check if COMA hooks are already installed
+    const hasComaHooks = userSettings.hooks?.PreToolUse?.some(hook =>
+      hook.hooks?.some(h => h.command?.includes('claude-coma hook'))
+    );
+
+    if (hasComaHooks) {
+      return; // Already installed
     }
 
     // Add COMA hooks
     const comaHooks = {
-      hooks: {
-        PreToolUse: [
-          {
-            matcher: "Edit|MultiEdit|Write|Bash",
-            hooks: [
-              {
-                type: "command",
-                command: path.join(__dirname, 'coma-validator.js')
-              }
-            ]
-          }
-        ],
-        PostToolUse: [
-          {
-            matcher: ".*",
-            hooks: [
-              {
-                type: "command",
-                command: `COMA_HOOK_TYPE=PostToolUse node ${path.join(__dirname, 'context-capturer.js')}`
-              }
-            ]
-          }
-        ],
-        UserPromptSubmit: [
-          {
-            matcher: ".*",
-            hooks: [
-              {
-                type: "command",
-                command: `COMA_HOOK_TYPE=UserPromptSubmit node ${path.join(__dirname, 'context-capturer.js')}`
-              }
-            ]
-          }
-        ]
-      }
+      PreToolUse: [
+        {
+          matcher: "Edit|MultiEdit|Write|Bash",
+          hooks: [
+            {
+              type: "command",
+              command: `${process.argv[0]} ${path.join(__dirname, 'claude-coma.js')} hook PreToolUse`
+            }
+          ]
+        }
+      ],
+      PostToolUse: [
+        {
+          matcher: ".*",
+          hooks: [
+            {
+              type: "command",
+              command: `${process.argv[0]} ${path.join(__dirname, 'claude-coma.js')} hook PostToolUse`
+            }
+          ]
+        }
+      ],
+      UserPromptSubmit: [
+        {
+          matcher: ".*",
+          hooks: [
+            {
+              type: "command",
+              command: `${process.argv[0]} ${path.join(__dirname, 'claude-coma.js')} hook UserPromptSubmit`
+            }
+          ]
+        }
+      ]
     };
-
 
     // Merge with existing settings
     const mergedSettings = {
       ...userSettings,
-      ...comaHooks,
-      _comaActive: true // Mark that COMA is active
+      hooks: {
+        ...userSettings.hooks,
+        ...comaHooks
+      }
     };
 
     await fs.writeFile(this.userSettingsPath, JSON.stringify(mergedSettings, null, 2));
-    console.log('COMA: Installed protection hooks');
+    console.log('COMA: Hooks installed in ~/.claude/settings.json');
   }
 
-  async removeHooks() {
-    try {
-      const backupPath = path.join(this.userClaudeDir, 'settings.backup.json');
+  showCleanupInstructions() {
+    console.log(`
+COMA Hook Removal Instructions:
 
-      // Check if backup exists
-      try {
-        await fs.access(backupPath);
-        // Restore from backup
-        const backup = await fs.readFile(backupPath, 'utf8');
-        await fs.writeFile(this.userSettingsPath, backup);
-        await fs.unlink(backupPath);
-        console.log('COMA: Restored original user settings');
-      } catch {
-        // No backup, check if we need to clean current settings
-        try {
-          const content = await fs.readFile(this.userSettingsPath, 'utf8');
-          const settings = JSON.parse(content);
+Hooks are installed in: ${this.userSettingsPath}
 
-          if (settings._comaActive) {
-            // Remove COMA-specific settings
-            delete settings.hooks;
-            delete settings.mcps;
-            delete settings._comaActive;
+To remove COMA hooks:
+1. Edit ~/.claude/settings.json
+2. Remove any hook entries containing 'claude-coma hook'
+3. Or delete the entire file if you have no other Claude Code settings
 
-            if (Object.keys(settings).length === 0) {
-              await fs.unlink(this.userSettingsPath);
-              console.log('COMA: Removed user settings file');
-            } else {
-              await fs.writeFile(this.userSettingsPath, JSON.stringify(settings, null, 2));
-              console.log('COMA: Cleaned COMA hooks from user settings');
-            }
-          }
-        } catch {
-          // Settings file doesn't exist or is invalid, nothing to clean
-        }
-      }
-    } catch (error) {
-      console.log('COMA: Warning - could not fully clean hooks:', error.message);
-    }
+Example COMA hook entries to remove:
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Edit|MultiEdit|Write|Bash",
+      "hooks": [{
+        "type": "command",
+        "command": "...claude-coma hook PreToolUse"
+      }]
+    }]
+  }
+}
+`);
   }
 
   async setupAcolytes() {
@@ -281,11 +305,12 @@ Examples:
     return files;
   }
 
-  async launchClaude() {
+  async launchClaude(env = process.env) {
     return new Promise((resolve, reject) => {
       const claude = spawn('claude', [], {
         cwd: this.repoPath,
-        stdio: 'inherit'
+        stdio: 'inherit',
+        env: env
       });
 
       claude.on('close', (code) => {
@@ -306,10 +331,81 @@ Examples:
     }
   }
 
-  async cleanup() {
-    console.log('COMA: Removing protection hooks...');
-    await this.removeHooks();
-    console.log('COMA: Cleanup complete');
+  handleHookCommand(args) {
+    const hookType = args[0];
+
+    // If CLAUDE_COMA is not set, act transparently (do nothing)
+    if (!process.env.CLAUDE_COMA) {
+      debugLog(`Hook ${hookType} called but CLAUDE_COMA not set - acting transparently`);
+      process.exit(0);
+    }
+
+    debugLog(`Hook ${hookType} triggered`);
+
+    // Handle different hook types
+    switch (hookType) {
+      case 'PreToolUse':
+        return this.handlePreToolUse();
+      case 'PostToolUse':
+        return this.handlePostToolUse();
+      case 'UserPromptSubmit':
+        return this.handleUserPromptSubmit();
+      default:
+        console.error(`COMA: Unknown hook type: ${hookType}`);
+        debugLog(`ERROR: Unknown hook type: ${hookType}`);
+        process.exit(1);
+    }
+  }
+
+  async handlePreToolUse() {
+    debugLog('PreToolUse: Delegating to coma-validator');
+    // Delegate to coma-validator
+    const { spawn } = await import('child_process');
+    const validator = spawn('node', [path.join(__dirname, 'coma-validator.js')], {
+      stdio: 'inherit',
+      env: { ...process.env }
+    });
+
+    return new Promise((resolve) => {
+      validator.on('close', (code) => {
+        debugLog(`PreToolUse: coma-validator exited with code ${code}`);
+        process.exit(code);
+      });
+    });
+  }
+
+  async handlePostToolUse() {
+    debugLog('PostToolUse: Delegating to context-capturer');
+    // Delegate to context-capturer
+    const { spawn } = await import('child_process');
+    const capturer = spawn('node', [path.join(__dirname, 'context-capturer.js')], {
+      stdio: 'inherit',
+      env: { ...process.env, COMA_HOOK_TYPE: 'PostToolUse' }
+    });
+
+    return new Promise((resolve) => {
+      capturer.on('close', (code) => {
+        debugLog(`PostToolUse: context-capturer exited with code ${code}`);
+        process.exit(code);
+      });
+    });
+  }
+
+  async handleUserPromptSubmit() {
+    debugLog('UserPromptSubmit: Delegating to context-capturer');
+    // Delegate to context-capturer
+    const { spawn } = await import('child_process');
+    const capturer = spawn('node', [path.join(__dirname, 'context-capturer.js')], {
+      stdio: 'inherit',
+      env: { ...process.env, COMA_HOOK_TYPE: 'UserPromptSubmit' }
+    });
+
+    return new Promise((resolve) => {
+      capturer.on('close', (code) => {
+        debugLog(`UserPromptSubmit: context-capturer exited with code ${code}`);
+        process.exit(code);
+      });
+    });
   }
 }
 
