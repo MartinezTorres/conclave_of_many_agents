@@ -148,6 +148,17 @@ Example decisions:
         env: { ...process.env, HOME: testDir }
       });
 
+      // Read debug log to check for consultation completion
+      let debugLogContent = '';
+      let consultationCompleted = false;
+      let consultationStarted = false;
+
+      try {
+        debugLogContent = await fs.readFile(debugLogPath, 'utf8');
+        consultationStarted = debugLogContent.includes('Starting consultation with agent');
+        consultationCompleted = debugLogContent.includes('VALIDATOR: All') || debugLogContent.includes('consultation completed') || debugLogContent.includes('Decision:');
+      } catch {}
+
       // Verify results
       const badNamingBlocked = badNamingResult.code === 1; // Should be rejected (exit code 1)
       const goodNamingApproved = goodNamingResult.code === 0; // Should be approved (exit code 0)
@@ -162,15 +173,17 @@ Example decisions:
       console.log(`    Bad naming (should block): ${badNamingBlocked ? 'BLOCKED' : 'ALLOWED'}`);
       console.log(`    Good naming (attempted): ${goodNamingApproved ? 'ALLOWED' : 'BLOCKED'}`);
       console.log(`    Transparent operation: ${transparentSuccess ? 'OK' : 'FAILED'}`);
-      console.log(`    COMA Value Demonstrated: ${badNamingBlocked ? 'YES - Caught style violation!' : 'NO'}`);
+      console.log(`    Agent consultation started: ${consultationStarted ? 'YES' : 'NO'}`);
+      console.log(`    Agent consultation completed: ${consultationCompleted ? 'YES' : 'NO'}`);
+      console.log(`    COMA Value Demonstrated: ${badNamingBlocked && consultationCompleted ? 'YES - Caught style violation!' : 'NO - Agents not working'}`);
 
-      // Success if bad naming is blocked and system works (good naming result less critical for demo)
-      if (badNamingBlocked && transparentSuccess && debugLogExists) {
+      // Success requires both correct decisions AND completed consultations
+      if (badNamingBlocked && transparentSuccess && debugLogExists && consultationCompleted) {
         return { success: true };
       } else {
         return {
           success: false,
-          error: `Bad naming blocked: ${badNamingBlocked}, Transparent: ${transparentSuccess}, Debug log: ${debugLogExists}`
+          error: `Bad naming blocked: ${badNamingBlocked}, Transparent: ${transparentSuccess}, Debug log: ${debugLogExists}, Consultation completed: ${consultationCompleted}`
         };
       }
 
