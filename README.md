@@ -25,27 +25,38 @@ npm install -g .
 ## Usage
 
 ```bash
-# Run Claude with temporary protection (default: Claude Code acolytes)
+# Run Claude with acolyte protection (default: Claude Code acolytes)
 claude-coma
 
 # Run Claude with OpenAI acolytes
 claude-coma --provider openai
 
-# Remove any leftover hooks
+# Run with debug logging
+claude-coma --debug
+
+# Run test suite
+claude-coma test
+
+# Show hook removal instructions
 claude-coma cleanup
 ```
 
-## How It Works
+## Commands
 
-1. **claude-coma**:
-   - Installs hooks in ~/.claude/settings.json
+1. **claude-coma** (default):
+   - Auto-installs hooks in ~/.claude/settings.json if needed
    - Scans repository and creates acolyte configs
-   - Launches Claude Code with protection
-   - Removes hooks when Claude exits
+   - Launches Claude Code with protection active
 
-2. **claude-coma cleanup**:
-   - Removes any COMA hooks from user settings
-   - Restores original settings if backup exists
+2. **claude-coma test**:
+   - Runs comprehensive test suite
+   - Validates hook installation and triggering
+   - Tests acolyte consultation process
+   - Verifies debug logging functionality
+
+3. **claude-coma cleanup**:
+   - Shows instructions for removing COMA hooks
+   - Lists hook locations and removal steps
 
 ## What Gets Protected
 
@@ -53,6 +64,33 @@ claude-coma cleanup
 - MultiEdit operations
 - Write operations
 - Bash commands
+
+## Testing
+
+COMA includes a comprehensive test suite accessible via the `test` subcommand:
+
+```bash
+# Run all tests
+claude-coma test
+
+# Run only unit tests
+claude-coma test --unit
+
+# Run only integration tests
+claude-coma test --integration
+
+# Run tests with debug logging (outputs logs to stdout before cleanup)
+claude-coma test --debug
+```
+
+The test suite validates:
+- Hook installation and removal
+- Consensus evaluation logic
+- Context capture system
+- File scanning functionality
+- Error handling scenarios
+- Provider interfaces
+- End-to-end integration with actual hook triggering
 
 ## Acolyte Providers
 
@@ -92,21 +130,19 @@ Both types:
 ```bash
 $ claude-coma
 COMA: Initializing acolyte protection...
-COMA: Backed up existing user settings
-COMA: Installed protection hooks
+COMA: Hooks installed in ~/.claude/settings.json
 COMA: Found 15 files to protect
 COMA: Launching Claude with protection active
 
 # Claude Code runs with protection
-
-COMA: Cleaning up temporary hooks...
-COMA: Restored original user settings
+# Hooks remain installed for future use
 ```
 
 ## Clean Design
 
-- Only 2 commands total
+- Single entry point: `claude-coma`
 - No repository files created
-- Temporary hooks only
-- Zero impact on team
+- Permanent hooks with transparent operation
+- Zero impact on team when not running
+- Self-contained test suite
 - ASCII-only output

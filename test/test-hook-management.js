@@ -188,7 +188,7 @@ async function testHookManagement() {
 
     // Test 1: Install hooks in clean environment
     console.log('Test 1: Install hooks in clean environment');
-    await coma.installHooks();
+    await coma.ensureHooksInstalled();
 
     const settingsContent = await fs.readFile(coma.userSettingsPath, 'utf8');
     const settings = JSON.parse(settingsContent);
@@ -217,7 +217,7 @@ async function testHookManagement() {
     };
     await fs.writeFile(coma.userSettingsPath, JSON.stringify(existingSettings, null, 2));
 
-    await coma.installHooks();
+    await coma.ensureHooksInstalled();
 
     // Check if backup was created
     const backupPath = path.join(coma.userClaudeDir, 'settings.backup.json');
@@ -239,7 +239,7 @@ async function testHookManagement() {
 
     // Test 3: Remove hooks with backup restoration
     console.log('Test 3: Remove hooks with backup restoration');
-    await coma.removeHooks();
+    await coma.removeComaHooks();
 
     const restoredContent = await fs.readFile(coma.userSettingsPath, 'utf8');
     const restored = JSON.parse(restoredContent);
@@ -262,7 +262,7 @@ async function testHookManagement() {
     // First remove any existing settings to start truly clean
     await fs.unlink(coma.userSettingsPath).catch(() => {});
 
-    await coma.installHooks();
+    await coma.ensureHooksInstalled();
 
     // Remove backup file to simulate no-backup scenario
     await fs.unlink(path.join(coma.userClaudeDir, 'settings.backup.json')).catch(() => {});
@@ -271,7 +271,7 @@ async function testHookManagement() {
     const beforeContent = await fs.readFile(coma.userSettingsPath, 'utf8');
     const beforeSettings = JSON.parse(beforeContent);
 
-    await coma.removeHooks();
+    await coma.removeComaHooks();
 
     const settingsExist = await fs.access(coma.userSettingsPath).then(() => true).catch(() => false);
 
@@ -321,7 +321,7 @@ async function testHookManagement() {
     await fs.writeFile(coma.userSettingsPath, 'invalid json content');
 
     try {
-      await coma.installHooks();
+      await coma.ensureHooksInstalled();
       console.log('✅ PASS - Invalid JSON handled gracefully');
     } catch (error) {
       console.log('❌ FAIL - Should handle invalid JSON gracefully');

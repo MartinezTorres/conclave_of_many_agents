@@ -3,9 +3,9 @@
 **NOTE: Before tackling any items below, these must be prioritized first based on project goals and requirements.**
 
 ## Priority 1 - Critical (Must Fix Now)
-- [ ] Test end-to-end functionality with real repository
-- [ ] Verify hooks trigger correctly in Claude Code
-- [ ] Add installation and setup instructions to README
+- [x] **Test end-to-end functionality with real repository** (✅ Integrated test suite with `claude-coma test`)
+- [x] **Verify hooks trigger correctly in Claude Code** (✅ Integration test validates hook triggering)
+- [x] **Add installation and setup instructions to README** (✅ Updated with test commands)
 
 ## Priority 2 - Essential (Before Release)
 - [ ] Add configuration options for timeouts and prompts
@@ -64,6 +64,10 @@
 - [x] **Updated Test Suite**: All tests updated for new permanent hook architecture
 - [x] **Architecture Documentation**: ARCHITECTURE.md updated to reflect new design
 - [x] **Cleanup Instructions**: Changed from automatic cleanup to user-friendly instructions
+- [x] **Integrated Test Runner**: Self-contained test suite via `claude-coma test` command
+- [x] **No Executable Scripts**: Converted all tests to importable modules for security
+- [x] **Comprehensive Testing**: Unit tests + integration test with environment validation
+- [x] **ASCII-Only Output**: Clean, professional test results following design principles
 
 ## Completed Items
 - [x] Create standard npm directory structure

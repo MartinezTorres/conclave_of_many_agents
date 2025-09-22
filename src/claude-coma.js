@@ -45,6 +45,10 @@ class CleanComa {
       return this.showCleanupInstructions();
     }
 
+    if (args[0] === 'test') {
+      return this.runTests(args.slice(1));
+    }
+
     if (args.includes('--help') || args.includes('-h')) {
       this.showHelp();
       return;
@@ -88,6 +92,7 @@ Claude-COMA (Conclave of Many Agents)
 Usage:
   claude-coma [options]         Run Claude with acolyte protection
   claude-coma cleanup          Show how to remove COMA hooks
+  claude-coma test [options]   Run test suite
   claude-coma hook <type>      Hook entry point (internal use)
 
 Options:
@@ -96,11 +101,19 @@ Options:
   --debug=<path>               Enable debug logging to custom path
   --help, -h                   Show this help
 
+Test Options:
+  claude-coma test             Run all tests
+  claude-coma test --unit      Run unit tests only
+  claude-coma test --integration  Run integration test only
+  claude-coma test --debug     Run tests with debug logging
+
 Examples:
   claude-coma                          # Protected Claude with Claude Code acolytes
   claude-coma --provider openai       # Protected Claude with OpenAI acolytes
   claude-coma --debug                  # With debug logging
   claude-coma --debug=/tmp/debug.log   # With custom debug log path
+  claude-coma test                     # Run all tests
+  claude-coma test --integration       # Test actual hook integration
   claude-coma cleanup                  # Show removal instructions
 `);
   }
@@ -406,6 +419,278 @@ Example COMA hook entries to remove:
         process.exit(code);
       });
     });
+  }
+
+  async runTests(args) {
+    debugLog('Starting test suite');
+    console.log('COMA Test Suite\n');
+
+    const runUnit = args.includes('--unit') || (!args.includes('--integration') && !args.includes('--unit'));
+    const runIntegration = args.includes('--integration') || (!args.includes('--integration') && !args.includes('--unit'));
+    const debugTests = args.includes('--debug');
+
+    let passed = 0;
+    let failed = 0;
+
+    try {
+      // Set up debug logging for tests if requested
+      if (debugTests) {
+        process.env.CLAUDE_COMA_DEBUG = path.join(this.repoPath, 'test-debug.log');
+        console.log('Debug logging enabled: test-debug.log');
+      }
+
+      if (runUnit) {
+        console.log('Running unit tests...');
+        const unitResults = await this.runUnitTests();
+        passed += unitResults.passed;
+        failed += unitResults.failed;
+      }
+
+      if (runIntegration) {
+        console.log('\nRunning integration tests...');
+        const integrationResults = await this.runIntegrationTest();
+        passed += integrationResults.passed;
+        failed += integrationResults.failed;
+      }
+
+      // Output debug logs before cleanup if debug was enabled
+      if (debugTests) {
+        await this.outputDebugLogs();
+      }
+
+      console.log(`\nTest Results: ${passed} passed, ${failed} failed`);
+
+      if (failed > 0) {
+        console.log('FAIL - Some tests failed');
+        process.exit(1);
+      } else {
+        console.log('PASS - All tests passed');
+      }
+
+    } catch (error) {
+      console.error('Test suite error:', error.message);
+      process.exit(1);
+    }
+  }
+
+  async runUnitTests() {
+    const testFiles = [
+      'test-hook-management.js',
+      'test-consensus-logic.js',
+      'test-context-capture.js',
+      'test-file-scanning.js',
+      'test-error-scenarios.js',
+      'test-parallel-acolytes.js'
+    ];
+
+    let passed = 0;
+    let failed = 0;
+
+    for (const testFile of testFiles) {
+      const testPath = path.join(__dirname, '..', 'test', testFile);
+      try {
+        console.log(`  Running ${testFile}...`);
+
+        // Run test file as child process to isolate it
+        const result = await this.runTestFile(testPath);
+
+        if (result.code === 0) {
+          console.log(`  PASS - ${testFile}`);
+          passed++;
+        } else {
+          console.log(`  FAIL - ${testFile}`);
+          if (result.stderr) {
+            console.log(`    Error: ${result.stderr}`);
+          }
+          failed++;
+        }
+      } catch (error) {
+        console.log(`  FAIL - ${testFile}: ${error.message}`);
+        failed++;
+      }
+    }
+
+    return { passed, failed };
+  }
+
+  async runIntegrationTest() {
+    console.log('  Running integration test...');
+
+    try {
+      const result = await this.executeIntegrationTest();
+
+      if (result.success) {
+        console.log('  PASS - Integration test');
+        return { passed: 1, failed: 0 };
+      } else {
+        console.log('  FAIL - Integration test');
+        console.log(`    Error: ${result.error}`);
+        return { passed: 0, failed: 1 };
+      }
+    } catch (error) {
+      console.log(`  FAIL - Integration test: ${error.message}`);
+      return { passed: 0, failed: 1 };
+    }
+  }
+
+  async runTestFile(testPath) {
+    return new Promise((resolve) => {
+      const proc = spawn('node', [testPath], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env }
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code) => {
+        resolve({ code, stdout: stdout.trim(), stderr: stderr.trim() });
+      });
+    });
+  }
+
+  async executeIntegrationTest() {
+    // Create temporary test directory
+    const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'coma-test-'));
+    const mockClaudeDir = path.join(testDir, '.claude');
+    const debugLogPath = path.join(testDir, 'debug.log');
+
+    try {
+      // Set up test environment
+      await fs.mkdir(mockClaudeDir, { recursive: true });
+
+      const srcDir = path.join(testDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+
+      await fs.writeFile(path.join(srcDir, 'test.js'), `
+// Test file
+function test() {
+  return "test";
+}
+module.exports = { test };
+`);
+
+      // Test 1: Hook triggering with CLAUDE_COMA=1
+      const activeResult = await this.runCommand('node', [path.join(__dirname, 'claude-coma.js'), 'hook', 'PreToolUse'], {
+        cwd: testDir,
+        env: {
+          ...process.env,
+          HOME: testDir,
+          CLAUDE_COMA: '1',
+          CLAUDE_COMA_DEBUG: debugLogPath,
+          COMA_CONFIG_DIR: path.join(testDir, '.coma-temp'),
+          COMA_REPO_PATH: testDir,
+          COMA_PROVIDER: 'claude-code'
+        },
+        input: JSON.stringify({
+          toolName: 'Edit',
+          parameters: {
+            file_path: path.join(testDir, 'src', 'test.js'),
+            old_string: 'function test',
+            new_string: 'function testRenamed'
+          }
+        })
+      });
+
+      // Test 2: Transparent operation without CLAUDE_COMA
+      const transparentResult = await this.runCommand('node', [path.join(__dirname, 'claude-coma.js'), 'hook', 'PreToolUse'], {
+        cwd: testDir,
+        env: { ...process.env, HOME: testDir }
+      });
+
+      // Verify results
+      const activeSuccess = activeResult.code === 0;
+      const transparentSuccess = transparentResult.code === 0;
+
+      let debugLogExists = false;
+      try {
+        await fs.access(debugLogPath);
+        debugLogExists = true;
+      } catch {}
+
+      if (activeSuccess && transparentSuccess && debugLogExists) {
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          error: `Active: ${activeSuccess}, Transparent: ${transparentSuccess}, Debug log: ${debugLogExists}`
+        };
+      }
+
+    } finally {
+      // Output debug log contents if debug is enabled before cleanup
+      if (process.env.CLAUDE_COMA_DEBUG && debugLogPath) {
+        try {
+          const logContent = await fs.readFile(debugLogPath, 'utf8');
+          if (logContent.trim()) {
+            console.log('    Integration test debug log:');
+            console.log('    ' + logContent.split('\n').join('\n    '));
+          }
+        } catch {}
+      }
+
+      // Cleanup
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  }
+
+  async runCommand(command, args, options = {}) {
+    return new Promise((resolve) => {
+      const proc = spawn(command, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        ...options
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code) => {
+        resolve({ code, stdout: stdout.trim(), stderr: stderr.trim() });
+      });
+
+      if (options.input) {
+        proc.stdin?.write(options.input);
+        proc.stdin?.end();
+      }
+    });
+  }
+
+  async outputDebugLogs() {
+    const debugLogPath = process.env.CLAUDE_COMA_DEBUG;
+    if (!debugLogPath) return;
+
+    try {
+      // Check if debug log exists and has content
+      const stats = await fs.stat(debugLogPath);
+      if (stats.size === 0) {
+        console.log('\nDebug Log: (empty)');
+        return;
+      }
+
+      const logContent = await fs.readFile(debugLogPath, 'utf8');
+      console.log('\n=== DEBUG LOG OUTPUT ===');
+      console.log(logContent.trim());
+      console.log('=== END DEBUG LOG ===\n');
+
+    } catch (error) {
+      console.log('\nDebug Log: (not found or could not read)');
+    }
   }
 }
 

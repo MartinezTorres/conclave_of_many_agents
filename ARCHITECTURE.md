@@ -204,21 +204,30 @@ Parameters: ${JSON.stringify(toolData.parameters, null, 2)}`;
 
 ```
 src/
-├── claude-coma.js           # Main launcher, hook router, settings management
+├── claude-coma.js           # Main launcher, hook router, settings management, test runner
 ├── coma-validator.js        # Central validation coordinator
 ├── context-manager.js       # Context capture and storage
 ├── context-capturer.js      # Hook-based context collection
 ├── prompts/
 │   └── base.md             # Acolyte prompt template
-└── providers/
-    ├── claude-code.js      # Claude Code provider implementation
-    └── openai.js           # OpenAI provider implementation
+├── providers/
+│   ├── claude-code.js      # Claude Code provider implementation
+│   └── openai.js           # OpenAI provider implementation
+test/
+├── test-hook-management.js  # Hook installation and cleanup tests
+├── test-consensus-logic.js  # Consensus evaluation tests
+├── test-context-capture.js  # Context capture system tests
+├── test-file-scanning.js    # Repository scanning tests
+├── test-error-scenarios.js  # Error handling tests
+├── test-parallel-acolytes.js # Provider interface tests
+└── test-integration.js      # End-to-end integration test
 ```
 
 **Key Changes:**
-- `claude-coma.js` now serves as the central hook router
+- `claude-coma.js` now serves as the central hook router and test runner
 - All hooks call `claude-coma hook <type>` for consistency
 - Debug logging added to all components
+- Comprehensive test suite integrated into main command
 
 ## Security Considerations
 
@@ -272,6 +281,22 @@ claude-coma --debug                    # Enable debug logging
 claude-coma --debug=/path/to/log       # Custom log path
 ```
 
+### Testing System
+```bash
+claude-coma test                       # Run all tests
+claude-coma test --unit                # Unit tests only
+claude-coma test --integration         # Integration test only
+claude-coma test --debug               # Tests with debug logging
+```
+
+**Test Architecture:**
+- **Self-contained**: All tests run through the main `claude-coma` command
+- **No executable files**: Tests are modules, not standalone scripts
+- **Comprehensive coverage**: Unit tests for components, integration test for end-to-end functionality
+- **Environment validation**: Integration test verifies actual hook triggering with real environment
+- **ASCII output**: Clean, team-friendly test results without emojis
+- **Isolated execution**: Each test runs in temporary directories with full cleanup
+
 ### Prompt Customization
 Users can edit `src/prompts/base.md` to:
 - Adjust acolyte behavior
@@ -310,6 +335,44 @@ Users can edit `src/prompts/base.md` to:
 - Hooks installed permanently (no automatic cleanup)
 - Manual removal required if COMA no longer wanted
 - Settings merge rather than backup/restore approach
+
+## Testing & Validation
+
+### Integrated Test Suite
+COMA includes a comprehensive test suite accessible via `claude-coma test`:
+
+**Unit Tests (6 files):**
+- Hook management: Installation, removal, settings manipulation
+- Consensus logic: APPROVE/REJECT decision evaluation
+- Context capture: Environment variable storage and retrieval
+- File scanning: Repository traversal and ignore patterns
+- Error scenarios: Network failures, invalid responses, edge cases
+- Provider interfaces: Claude Code and OpenAI provider testing
+
+**Integration Test:**
+- End-to-end hook triggering simulation
+- Environment-based activation testing (`CLAUDE_COMA=1` vs unset)
+- Debug logging verification
+- Temporary directory isolation
+- Real command execution with process spawning
+
+**Test Design Principles:**
+- **No repository pollution**: All tests use temporary directories
+- **ASCII-only output**: Clean, professional test results
+- **Self-validation**: Tests verify their own environment setup
+- **Comprehensive cleanup**: No test artifacts left behind
+- **Real environment simulation**: Tests use actual file system and processes
+
+### Validation Workflow
+```
+claude-coma test
+    ↓
+Unit Tests (components)
+    ↓
+Integration Test (end-to-end)
+    ↓
+Results Summary
+```
 
 ## Future Considerations
 
