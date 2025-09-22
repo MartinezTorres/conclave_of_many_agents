@@ -7,9 +7,12 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { ClaudeCodeProvider } from './providers/claude-code.js';
 import { OpenAIProvider } from './providers/openai.js';
 import { ContextManager } from './context-manager.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Debug logging utility
 function debugLog(message) {
@@ -190,9 +193,33 @@ export class ComaValidator {
     return agents;
   }
 
+  async loadBasePromptTemplate() {
+    try {
+      const basePromptPath = path.join(__dirname, 'prompts', 'base.md');
+      const basePrompt = await fs.readFile(basePromptPath, 'utf8');
+      debugLog(`Loaded base prompt template: ${basePrompt.length} chars`);
+      return basePrompt;
+    } catch (error) {
+      debugLog(`Failed to load base prompt template: ${error.message}`);
+      // Fallback to simple prompt if base.md not found
+      return `You are an agent protecting code files. Review changes for quality, security, and consistency.
+
+Return APPROVE or REJECT with reasoning.`;
+    }
+  }
+
+  createSystemPromptFromTemplate(baseTemplate, filePath, fileTypeGuidelines = '') {
+    return baseTemplate
+      .replace(/\{\{FILE_PATH\}\}/g, filePath)
+      .replace(/\{\{FILE_TYPE_GUIDELINES\}\}/g, fileTypeGuidelines);
+  }
+
   async scanRepositoryForFiles() {
     try {
       debugLog(`Scanning repository at: ${this.repoPath}`);
+
+      // Load the base prompt template
+      const basePrompt = await this.loadBasePromptTemplate();
 
       // For now, create a simple agent for common file types
       // This replaces the static agents.json approach
@@ -200,28 +227,38 @@ export class ComaValidator {
         {
           id: 'agent_javascript_files',
           file: '**/*.js',
-          systemPrompt: `You are a guardian of JavaScript files. Review changes for:
-- Code quality and best practices
-- Variable naming conventions
-- Function structure and logic
-- Security concerns
+          systemPrompt: this.createSystemPromptFromTemplate(
+            basePrompt,
+            '**/*.js',
+            `## JavaScript File Guidelines
 
-Return APPROVE or REJECT with reasoning.`
+This file contains JavaScript code. Pay special attention to:
+- Modern ES6+ syntax and best practices
+- Variable declarations (prefer const/let over var)
+- Function design and modularity
+- Error handling and edge cases
+- Security implications of dynamic code execution`
+          )
         },
         {
           id: 'agent_typescript_files',
           file: '**/*.ts',
-          systemPrompt: `You are a guardian of TypeScript files. Review changes for:
-- Type safety and correctness
-- Code quality and best practices
-- Interface design
-- Security concerns
+          systemPrompt: this.createSystemPromptFromTemplate(
+            basePrompt,
+            '**/*.ts',
+            `## TypeScript File Guidelines
 
-Return APPROVE or REJECT with reasoning.`
+This file contains TypeScript code. Pay special attention to:
+- Type safety and correctness
+- Interface and type definitions
+- Generic usage and constraints
+- Strict TypeScript compilation requirements
+- Integration with JavaScript ecosystem`
+          )
         }
       ];
 
-      debugLog(`Created ${agents.length} dynamic agents`);
+      debugLog(`Created ${agents.length} dynamic agents with base.md template`);
       return agents;
     } catch (error) {
       debugLog(`Failed to scan repository: ${error.message}`);
