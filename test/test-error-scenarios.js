@@ -3,7 +3,6 @@
  */
 
 import { ClaudeCodeProvider } from '../src/providers/claude-code.js';
-import { OpenAIProvider } from '../src/providers/openai.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -237,35 +236,8 @@ async function testConcurrencyErrors() {
 async function testEnvironmentErrors() {
   console.log('Testing environment and configuration errors...\n');
 
-  // Test 1: Missing environment variables for OpenAI
-  console.log('Test 1: Missing OpenAI API key');
-
-  const originalApiKey = process.env.OPENAI_API_KEY;
-  delete process.env.OPENAI_API_KEY;
-
-  try {
-    const openaiProvider = new OpenAIProvider('/tmp');
-    const testAgent = { id: 'test', file: 'test.js', systemPrompt: 'Test' };
-    const testToolData = { toolName: 'Edit', parameters: {} };
-
-    await openaiProvider.consultAgent(testAgent, testToolData);
-    console.log('FAIL FAIL - Should have failed with missing API key');
-  } catch (error) {
-    if (error.message.includes('API') || error.message.includes('key') || error.message.includes('401')) {
-      console.log('PASS PASS - Missing API key error handled correctly');
-    } else {
-      console.log(`PASS PASS - Error handled (may be different API error): ${error.message}`);
-    }
-  } finally {
-    // Restore API key if it existed
-    if (originalApiKey) {
-      process.env.OPENAI_API_KEY = originalApiKey;
-    }
-  }
-  console.log('');
-
-  // Test 2: Invalid working directory
-  console.log('Test 2: Invalid working directory');
+  // Test 1: Invalid working directory
+  console.log('Test 1: Invalid working directory');
 
   try {
     const provider = new ClaudeCodeProvider('/nonexistent/directory/path');

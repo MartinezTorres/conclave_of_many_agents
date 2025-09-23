@@ -9,7 +9,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ClaudeCodeProvider } from './providers/claude-code.js';
-import { OpenAIProvider } from './providers/openai.js';
 import { ContextManager } from './context-manager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,8 +38,6 @@ export class ComaValidator {
     // Initialize the appropriate provider
     if (this.provider === 'claude-code') {
       this.agentProvider = new ClaudeCodeProvider(this.repoPath);
-    } else if (this.provider === 'openai') {
-      this.agentProvider = new OpenAIProvider(this.repoPath);
     } else {
       console.error(`COMA: Unknown provider: ${this.provider}`);
       process.exit(1);
@@ -277,8 +274,8 @@ This file contains TypeScript code. Pay special attention to:
       debugLog(`Context content: ${claudeContext}`);
     }
 
-    // Create enhanced tool data with context
-    const enhancedToolData = {
+    // Create consultation data (generic object for provider)
+    const consultationData = {
       ...toolData,
       claudeContext: claudeContext
     };
@@ -286,7 +283,7 @@ This file contains TypeScript code. Pay special attention to:
     // Spawn all agents in parallel using the provider
     const promises = agents.map(agent => {
       debugLog(`Starting consultation with agent ${agent.id} for file ${agent.file}`);
-      const consultationPromise = this.agentProvider.consultAgent(agent, enhancedToolData);
+      const consultationPromise = this.agentProvider.consultAgent(agent, consultationData);
 
       // Add timeout logging
       const timeoutPromise = new Promise((resolve) => {

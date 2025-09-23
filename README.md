@@ -25,11 +25,8 @@ npm install -g .
 ## Usage
 
 ```bash
-# Run Claude with agent protection (default: Claude Code agents)
+# Run Claude with agent protection
 claude-coma
-
-# Run Claude with OpenAI agents
-claude-coma --provider openai
 
 # Run with debug logging
 claude-coma --debug
@@ -92,38 +89,24 @@ The test suite validates:
 - Provider interfaces
 - End-to-end integration with actual hook triggering
 
-## Agent Providers
+## How Agents Work
 
-### Claude Code Agents (Default)
 Each file gets a Claude Code agent that:
 - Runs in parallel with other agents for speed (3-10 seconds vs 30+ sequential)
 - Analyzes proposed changes using full Claude capabilities
 - Has access to all Claude Code tools (Read, Grep, etc.)
 - No external API keys needed
 
-### OpenAI Agents (Alternative)
-Each file gets an OpenAI-powered agent that:
-- Uses direct OpenAI API calls
-- Provides different AI perspective on changes
-- May be faster for simple validation tasks
-- Requires OpenAI API key
-
-Both types:
-- Return APPROVE or REJECT
+Each agent:
+- Returns APPROVE or REJECT
 - Any rejection blocks the operation
-- Provide detailed reasoning
+- Provides detailed reasoning
 
 ## Requirements
 
-### Claude Code Provider (Default)
 - Node.js 16+
 - Claude Code installed
 - No external API keys needed
-
-### OpenAI Provider
-- Node.js 16+
-- Claude Code installed
-- OpenAI API key in OPENAI_API_KEY environment variable
 
 ## Example Session
 

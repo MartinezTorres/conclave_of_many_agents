@@ -23,14 +23,19 @@ constructor(repoPath)
 
 ### Method
 ```javascript
-async consultAgent(agent, context)
+async consultAgent(agent, consultation)
 ```
 
 **Parameters:**
 - `agent`: Object with properties:
   - `id`: String identifier
   - `systemPrompt`: Instructions for the AI model
-- `context`: Object containing the data to be analyzed
+- `consultation`: Object containing the data to be analyzed (provider should treat this generically)
 
 **Returns:**
 Promise resolving to string containing the raw AI response. The format and structure of this response is determined by the agent's prompt, not by the provider.
+
+**Requirements:**
+- **Timeout**: Must implement a reasonable timeout (recommended: 60 seconds) to prevent hanging consultations
+- **Generic handling**: Provider must not interpret consultation object structure - pass it generically to the AI model
+- **Error handling**: Should reject with descriptive error messages on failure

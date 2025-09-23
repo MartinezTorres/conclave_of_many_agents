@@ -26,7 +26,7 @@ export class ClaudeCodeProvider {
     this.repoPath = repoPath;
   }
 
-  async consultAgent(agent, context) {
+  async consultAgent(agent, consultation) {
     debugLog(`Starting consultation with agent ${agent.id}`);
 
     return new Promise(async (resolve, reject) => {
@@ -37,18 +37,15 @@ export class ClaudeCodeProvider {
 
       try {
         debugLog(`Creating instruction for agent ${agent.id}`);
-        debugLog(`Tool: ${context.toolName}, Parameters: ${JSON.stringify(context.parameters)}`);
+        debugLog(`Consultation data: ${JSON.stringify(consultation)}`);
         debugLog(`Agent system prompt length: ${agent.systemPrompt.length} chars`);
-        // Create instruction for Claude agent
-        const contextSection = context.claudeContext
-          ? `\n\nCONTEXT FROM RECENT CLAUDE RESPONSES:\n${context.claudeContext}\n`
-          : '';
 
-        const instruction = `${agent.systemPrompt}${contextSection}
+        // Create instruction with generic consultation data
+        // The agent's system prompt should define how to interpret the consultation
+        const instruction = `${agent.systemPrompt}
 
-PROPOSED CHANGE:
-Tool: ${context.toolName}
-Parameters: ${JSON.stringify(context.parameters, null, 2)}
+CONSULTATION DATA:
+${JSON.stringify(consultation, null, 2)}
 
 Begin your analysis:`;
 

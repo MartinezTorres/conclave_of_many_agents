@@ -78,11 +78,7 @@ COMA supports multiple AI providers for agent consultation:
 - Leverages full Claude capabilities for analysis
 - No external API keys required
 
-#### OpenAI Provider
-- Uses direct OpenAI API calls (GPT-4o-mini)
-- Faster for simple validation tasks
-- Requires OPENAI_API_KEY environment variable
-- More cost-effective for high-volume usage
+**Note:** COMA is designed with a generic provider interface to support additional AI providers in the future.
 
 ### 4. Context Capture System
 
@@ -211,8 +207,7 @@ src/
 ├── prompts/
 │   └── base.md             # Acolyte prompt template
 ├── providers/
-│   ├── claude-code.js      # Claude Code provider implementation
-│   └── openai.js           # OpenAI provider implementation
+│   └── claude-code.js      # Claude Code provider implementation
 test/
 ├── test-hook-management.js  # Hook installation and cleanup tests
 ├── test-consensus-logic.js  # Consensus evaluation tests
@@ -264,15 +259,13 @@ test/
 - No file I/O during normal operation
 
 ### Provider Performance
-- **Claude Code**: Slower startup, more thorough analysis
-- **OpenAI**: Faster response, direct API calls
+- **Claude Code**: 3-10 seconds for parallel consultation, thorough analysis with full context
 
 ## Configuration & Customization
 
 ### Provider Selection
 ```bash
-claude-coma --provider openai  # Use OpenAI provider
-claude-coma                    # Use Claude Code provider (default)
+claude-coma                    # Use Claude Code provider (default and only)
 ```
 
 ### Debug Logging
@@ -311,7 +304,6 @@ Users can edit `src/prompts/base.md` to:
 - `COMA_CONFIG_DIR`: Temporary configuration storage
 - `COMA_REPO_PATH`: Repository root path
 - `COMA_CONTEXT_N`: Captured Claude responses
-- `OPENAI_API_KEY`: Required for OpenAI provider
 
 ## Limitations & Trade-offs
 
@@ -347,7 +339,7 @@ COMA includes a comprehensive test suite accessible via `claude-coma test`:
 - Context capture: Environment variable storage and retrieval
 - File scanning: Repository traversal and ignore patterns
 - Error scenarios: Network failures, invalid responses, edge cases
-- Provider interfaces: Claude Code and OpenAI provider testing
+- Provider interfaces: Claude Code provider testing
 
 **Integration Test:**
 - End-to-end hook triggering simulation

@@ -3,7 +3,6 @@
  */
 
 import { ClaudeCodeProvider } from '../src/providers/claude-code.js';
-import { OpenAIProvider } from '../src/providers/openai.js';
 
 class ProviderTestRunner {
   constructor() {
@@ -78,8 +77,7 @@ async function testProviders() {
 
   // Available providers
   const providers = [
-    { name: 'Claude Code', class: ClaudeCodeProvider },
-    { name: 'OpenAI', class: OpenAIProvider, requiresApiKey: true }
+    { name: 'Claude Code', class: ClaudeCodeProvider }
   ];
 
   for (const { name, class: ProviderClass, requiresApiKey } of providers) {
@@ -116,11 +114,6 @@ async function testProviders() {
 
     // Test 5: Parallel execution with return type validation
     await runner.asyncTest(`${name} provider parallel execution`, async () => {
-      // Skip actual execution test for OpenAI without API key
-      if (requiresApiKey && !process.env.OPENAI_API_KEY) {
-        console.log(`    Skipping execution test for ${name} - no API key`);
-        return;
-      }
 
       const promises = agents.map(agent =>
         provider.consultAgent(agent, context)
