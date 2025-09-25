@@ -78,7 +78,17 @@ COMA supports multiple AI providers for agent consultation:
 - Leverages full Claude capabilities for analysis
 - No external API keys required
 
-**Note:** COMA is designed with a generic provider interface to support additional AI providers in the future.
+**Authentication Requirements:**
+- Requires Claude Code to be authenticated in the user's home directory
+- Spawned processes must access authentication credentials from `~/.claude/` or similar
+- Tests must preserve original HOME environment to maintain authentication access
+
+**Generic Provider Interface:**
+COMA uses a standardized provider interface with:
+- `consultAgent(agent, consultation)` method signature
+- 60-second timeout requirement for all providers
+- Generic consultation parameter (providers don't interpret structure)
+- Agent prompts define how to handle consultation data
 
 ### 4. Context Capture System
 
@@ -312,11 +322,24 @@ Users can edit `src/prompts/base.md` to:
 - Must reconstruct intent from conversation history
 - Limited to last 5 responses (environment variable size constraints)
 
+### Authentication Dependencies
+- **Claude Code authentication required**: System depends on authenticated Claude installation
+- **HOME environment variable**: Tests must preserve user's HOME to access auth credentials
+- **Test isolation compromise**: Cannot fully isolate tests while maintaining authentication
+
 ### Performance Trade-offs
 - Added latency before each operation (3-10 seconds) when COMA active
-- Increased API usage for provider calls
-- Memory usage for parallel agent sessions
+- Increased resource usage for parallel agent sessions
+- Memory usage for context storage and process spawning
 - Zero performance impact when COMA not running
+
+### Configuration Hardcoding
+**Priority improvement areas identified in comprehensive code audit:**
+- Timeout values hardcoded (60s provider, 10s validator)
+- Tool allowlists hardcoded in provider and validator
+- Agent definitions embedded in code vs external configuration
+- Command paths and arguments not configurable
+- Decision keywords ('APPROVE'/'REJECT') hardcoded
 
 ### Coverage Limitations
 - Only covers modification operations

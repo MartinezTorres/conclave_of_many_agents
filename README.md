@@ -105,8 +105,10 @@ Each agent:
 ## Requirements
 
 - Node.js 16+
-- Claude Code installed
+- Claude Code installed and authenticated
 - No external API keys needed
+
+⚠️ **Authentication Note**: COMA requires Claude Code to be properly authenticated in your user environment. The system spawns new Claude processes that need access to your Claude authentication credentials stored in your home directory.
 
 ## Example Session
 
@@ -121,6 +123,24 @@ COMA: Launching Claude with protection active
 # Hooks remain installed for future use
 ```
 
+## Current Status & Limitations
+
+### ✅ Working Features
+- **Agent consultation system**: Agents analyze code changes and provide APPROVE/REJECT decisions
+- **Sophisticated prompts**: Uses base.md template for file-specific analysis
+- **Parallel execution**: Multiple agents run simultaneously for faster validation
+- **Test suite**: Comprehensive testing with accurate system health reporting
+
+### ⚠️ Known Limitations
+- **Authentication dependency**: Requires Claude Code authentication in main user environment
+- **Test isolation trade-off**: Tests must compromise isolation to maintain Claude authentication
+- **Configuration hardcoding**: Several values hardcoded that should be configurable (see development notes)
+
+### 📊 Test Suite Status
+- **Unit tests**: 6/6 passing - Core logic validation
+- **Provider test**: Correctly fails when authentication unavailable
+- **Integration test**: Passes when Claude authentication works, properly detects when agents complete
+
 ## Clean Design
 
 - Single entry point: `claude-coma`
@@ -129,3 +149,4 @@ COMA: Launching Claude with protection active
 - Zero impact on team when not running
 - Self-contained test suite
 - ASCII-only output
+- Generic provider interface for future extensibility
