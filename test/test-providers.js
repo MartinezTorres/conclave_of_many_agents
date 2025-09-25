@@ -3,6 +3,9 @@
  */
 
 import { ClaudeCodeProvider } from '../src/providers/claude-code.js';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
 
 class ProviderTestRunner {
   constructor() {
@@ -57,6 +60,11 @@ async function testProviders() {
 
   const runner = new ProviderTestRunner();
 
+  // Create isolated test environment like integration test
+  const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'coma-provider-test-'));
+
+  try {
+
   // Test data following PROVIDERS.md spec
   const agents = [
     {
@@ -87,7 +95,7 @@ async function testProviders() {
 
     // Test 1: Constructor creates instance
     runner.test(`${name} provider constructor`, () => {
-      provider = new ProviderClass(process.cwd());
+      provider = new ProviderClass(testDir); // Use isolated test directory
       if (!provider) throw new Error('Constructor failed to create instance');
     });
 
@@ -113,25 +121,55 @@ async function testProviders() {
     });
 
     // Test 5: Parallel execution with return type validation
+    // This test should now properly detect authentication failures in isolated environment
     await runner.asyncTest(`${name} provider parallel execution`, async () => {
 
-      const promises = agents.map(agent =>
-        provider.consultAgent(agent, context)
-          .then(result => {
-            if (typeof result !== 'string') {
-              throw new Error(`Must return string, got ${typeof result}`);
-            }
-            return { success: true, result };
-          })
-      );
+      // Save original environment
+      const originalEnv = process.env;
 
-      const results = await Promise.all(promises);
-      const successful = results.filter(r => r.success).length;
+      try {
+        // Set isolated environment like integration test (should cause auth failure)
+        process.env = {
+          ...originalEnv,
+          HOME: testDir, // This breaks Claude Code auth - provider test should detect this
+        };
 
-      if (successful !== agents.length) {
-        throw new Error(`Expected ${agents.length} successful consultations, got ${successful}`);
+        const promises = agents.map(agent =>
+          provider.consultAgent(agent, context)
+            .then(result => {
+              if (typeof result !== 'string') {
+                throw new Error(`Must return string, got ${typeof result}`);
+              }
+              return { success: true, result };
+            })
+            .catch(error => {
+              // Convert errors to failed results instead of throwing
+              return { success: false, error: error.message };
+            })
+        );
+
+        const results = await Promise.all(promises);
+        const successful = results.filter(r => r.success).length;
+        const failed = results.filter(r => !r.success);
+
+        if (failed.length > 0) {
+          console.log(`    Provider failures detected: ${failed.map(f => f.error).join(', ')}`);
+          throw new Error(`Provider consultation failed: ${failed[0].error}`);
+        }
+
+        if (successful !== agents.length) {
+          throw new Error(`Expected ${agents.length} successful consultations, got ${successful}`);
+        }
+      } finally {
+        // Restore original environment
+        process.env = originalEnv;
       }
     });
+  }
+
+  } finally {
+    // Clean up test directory
+    await fs.rm(testDir, { recursive: true, force: true });
   }
 
   const success = runner.summary();

@@ -111,7 +111,7 @@ Example decisions:
         cwd: testDir,
         env: {
           ...process.env,
-          HOME: testDir,
+          // HOME: testDir, // Keep original HOME for Claude authentication
           CLAUDE_COMA: '1',
           CLAUDE_COMA_DEBUG: debugLogPath,
           COMA_CONFIG_DIR: comaConfigDir,
@@ -133,7 +133,7 @@ Example decisions:
         cwd: testDir,
         env: {
           ...process.env,
-          HOME: testDir,
+          // HOME: testDir, // Keep original HOME for Claude authentication
           CLAUDE_COMA: '1',
           CLAUDE_COMA_DEBUG: debugLogPath,
           COMA_CONFIG_DIR: comaConfigDir,
@@ -156,7 +156,7 @@ Example decisions:
       try {
         debugLogContent = await fs.readFile(debugLogPath, 'utf8');
         consultationStarted = debugLogContent.includes('Starting consultation with agent');
-        consultationCompleted = debugLogContent.includes('VALIDATOR: All') || debugLogContent.includes('consultation completed') || debugLogContent.includes('Decision:');
+        consultationCompleted = debugLogContent.includes('**APPROVE**') || debugLogContent.includes('**REJECT**') || debugLogContent.includes('consultation completed successfully');
       } catch {}
 
       // Verify results
